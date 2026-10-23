@@ -93,7 +93,11 @@ async function providerRequest(url, options = {}, key) {
       let message = data.error?.message || data.message || `HTTP ${response.status}`;
       message = String(message).replaceAll(key,'[API KEY]');
       const error = new Error(`Nhà cung cấp AI báo lỗi (${response.status}): ${message.slice(0,350)}`);
-      error.statusCode = [400,401,403,404,429].includes(response.status) ? response.status : 502;
+      // Preserve provider HTTP semantics so the frontend can suggest an actionable recovery.
+      error.statusCode = [400,401,403,404,408,429,500,502,503,504].includes(response.status) ? response.status : 502;
+      error.providerStatus = response.status;
+      error.code = response.status === 429 ? (/quota exceeded|quota_exceeded|free_tier|daily|per.day|rpd|billing/i.test(message) ? 'quota_exceeded' : 'rate_limited') : response.status === 503 ? 'provider_busy' : response.status === 401 || response.status === 403 ? 'auth_denied' : 'provider_error';
+      // Never return request headers / API key to the browser or write them to logs.
       throw error;
     }
     return data;
@@ -188,6 +192,6 @@ exports.handler = async (event) => {
   } catch (error) {
     const status=error.statusCode|| (error.name==='AbortError'?504:502);
     const message=error.name==='AbortError' ? 'Yêu cầu AI quá thời gian. Hãy thử lại hoặc chọn model khác.' : error.message || 'Không thể xử lý yêu cầu AI.';
-    return reply(status,{ok:false,error:String(message).slice(0,500)});
+    return reply(status,{ok:false,error:String(message).slice(0,500),providerStatus:error.providerStatus||status,code:error.code||'unknown_error'});
   }
 };

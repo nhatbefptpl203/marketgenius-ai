@@ -45,6 +45,7 @@
       <nav class="side-nav" aria-label="Điều hướng chính">
         <button class="nav-item active" type="button" data-view="create"><svg class="icon"><use href="#i-grid"/></svg> Khám phá ý tưởng <span class="nav-dot"></span></button>
         <button class="nav-item" type="button" data-view="shortlist"><svg class="icon"><use href="#i-bookmark"/></svg> Shortlist <span id="sideSavedCount" class="nav-count">0</span></button>
+        <button class="nav-item" type="button" data-view="history"><svg class="icon"><use href="#i-clock"/></svg> Lịch sử tạo <span class="nav-dot"></span></button>
       </nav>
       <div class="sidebar-section-label tools-label">TRỢ LÝ AI</div>
       <section class="api-panel" id="apiPanel" aria-label="Kết nối API cá nhân">
@@ -75,7 +76,7 @@
         <div id="apiStatus" class="api-status" role="status"><span class="status-dot"></span><span>Chưa kết nối · Có thể thử demo</span></div>
         <p class="privacy-note">Key chỉ được giữ trong tab đang mở và gửi qua HTTPS đến Function của website để gọi AI. Không lưu vào localStorage.</p>
       </section>
-      <div class="sidebar-bottom"><div class="help-illustration">✦ <span>AI</span> ✳</div><strong>Ý tưởng tốt bắt đầu từ một câu hỏi.</strong><p>Biến brief thành chiến dịch trong vài phút.</p><span class="version">VIBE CODING 2026 • v1.2</span></div>
+      <div class="sidebar-bottom"><div class="help-illustration">✦ <span>AI</span> ✳</div><strong>Ý tưởng tốt bắt đầu từ một câu hỏi.</strong><p>Biến brief thành chiến dịch trong vài phút.</p><span class="version">VIBE CODING 2026 • v1.3</span></div>
     </aside>
 
     <div class="workspace">
@@ -97,16 +98,28 @@
               <div class="form-footer"><div class="form-notice"><svg class="icon"><use href="#i-shield"/></svg><span>Chưa có API? <strong>Demo miễn phí</strong> vẫn chạy đủ chức năng.</span></div><div class="form-actions"><button id="demoBtn" class="btn btn-secondary" type="button"><svg class="icon"><use href="#i-zap"/></svg> Thử demo</button><button id="generateBtn" class="btn btn-primary" type="submit"><svg class="icon"><use href="#i-sparkle"/></svg> Tạo 5 ý tưởng <svg class="icon"><use href="#i-arrow"/></svg></button></div></div>
             </form>
           </section>
-          <section id="resultsSection" class="results-section hidden" aria-live="polite"><div class="results-heading"><div><div class="section-overline">BƯỚC 02 · KHÁM PHÁ</div><h2>Chiến dịch dành cho bạn <span class="result-count">05</span></h2><p id="resultsSubtitle">Các ý tưởng được đề xuất theo brief của bạn.</p></div><div class="results-actions"><span id="sourceTag" class="source-tag">DEMO</span><button id="regenerateBtn" class="btn btn-outline small" type="button"><svg class="icon"><use href="#i-rotate"/></svg> Tạo lại</button></div></div><div id="ideasGrid" class="ideas-grid"></div></section>
+          <section id="resultsSection" class="results-section hidden" aria-live="polite"><div class="results-heading"><div><div class="section-overline">BƯỚC 02 · KHÁM PHÁ</div><h2>Chiến dịch dành cho bạn <span class="result-count">05</span></h2><p id="resultsSubtitle">Các ý tưởng được đề xuất theo brief của bạn.</p></div><div class="results-actions"><span id="sourceTag" class="source-tag">DEMO</span><button id="regenerateBtn" class="btn btn-outline small" type="button"><svg class="icon"><use href="#i-rotate"/></svg> Tạo lại</button></div></div><div id="ideasGrid" class="ideas-grid"></div><div class="export-row"><button type="button" id="exportCurrentBtn" class="btn btn-outline small">⇩ Xuất PDF cả 5 chiến dịch</button></div></section>
           <footer class="page-footer">MarketGenius AI <span>•</span> Made for creative minds <span>•</span> Vibe Coding 2026</footer>
         </section>
 
-        <section id="shortlistView" class="page-view"><div class="page-heading shortlist-heading"><div><div class="eyebrow"><svg class="icon"><use href="#i-bookmark"/></svg> YOUR CREATIVE COLLECTION</div><h1>Shortlist <span>của bạn.</span></h1><p>Lưu giữ những ý tưởng tốt nhất và chia sẻ kế hoạch với đồng đội.</p></div></div><div class="shortlist-toolbar"><div><strong>Chiến dịch đã lưu</strong><p id="shortlistDescription">Danh sách lưu trong trình duyệt này.</p></div><button type="button" id="copyAllBtn" class="btn btn-outline small"><svg class="icon"><use href="#i-copy"/></svg> Copy tất cả</button></div><div id="savedGrid" class="ideas-grid"></div><div id="shortlistEmpty" class="empty-state"><div class="empty-icon"><svg class="icon"><use href="#i-bookmark"/></svg></div><h3>Chưa có ý tưởng nào được lưu</h3><p>Khi tìm thấy một chiến dịch phù hợp, nhấn “Lưu shortlist” để quản lý tại đây.</p><button type="button" id="goCreateBtn" class="btn btn-primary"><svg class="icon"><use href="#i-sparkle"/></svg> Khám phá ý tưởng</button></div><footer class="page-footer">MarketGenius AI <span>•</span> Your ideas, organized.</footer></section>
+        <section id="shortlistView" class="page-view"><div class="page-heading shortlist-heading"><div><div class="eyebrow"><svg class="icon"><use href="#i-bookmark"/></svg> YOUR CREATIVE COLLECTION</div><h1>Shortlist <span>của bạn.</span></h1><p>Lưu giữ những ý tưởng tốt nhất và chia sẻ kế hoạch với đồng đội.</p></div></div><div class="shortlist-toolbar"><div><strong>Chiến dịch đã lưu</strong><p id="shortlistDescription">Danh sách lưu trong trình duyệt này.</p></div><button type="button" id="exportShortlistBtn" class="btn btn-outline small">⇩ Xuất PDF</button><button type="button" id="copyAllBtn" class="btn btn-outline small"><svg class="icon"><use href="#i-copy"/></svg> Copy tất cả</button></div><div id="savedGrid" class="ideas-grid"></div><div id="shortlistEmpty" class="empty-state"><div class="empty-icon"><svg class="icon"><use href="#i-bookmark"/></svg></div><h3>Chưa có ý tưởng nào được lưu</h3><p>Khi tìm thấy một chiến dịch phù hợp, nhấn “Lưu shortlist” để quản lý tại đây.</p><button type="button" id="goCreateBtn" class="btn btn-primary"><svg class="icon"><use href="#i-sparkle"/></svg> Khám phá ý tưởng</button></div><footer class="page-footer">MarketGenius AI <span>•</span> Your ideas, organized.</footer></section>
+        <section id="historyView" class="page-view">
+          <div class="page-heading shortlist-heading"><div><div class="eyebrow">✦ YOUR CAMPAIGN ARCHIVE</div><h1>Lịch sử <span>chiến dịch.</span></h1><p>Xem lại các lần AI tạo 5 ý tưởng, mở tiếp và xuất báo cáo bất cứ lúc nào.</p></div></div>
+          <div class="shortlist-toolbar"><div><strong>Lịch sử đã lưu</strong><p id="historyCount">0 lần tạo được lưu trên thiết bị này</p></div><span class="local-only-tag">Chỉ lưu trên trình duyệt, không lưu API Key</span></div>
+          <div id="historyList" class="history-list"></div><div id="historyEmpty" class="empty-state"><h3>Chưa có lịch sử</h3><p>Thử tạo chiến dịch Demo hoặc AI thật, kết quả sẽ tự lưu tại đây.</p></div>
+        </section>
       </main>
     </div>
   </div>
   <div id="toastStack" class="toast-stack" aria-live="polite"></div>
+  <div id="compareTray" class="compare-tray hidden"><strong>So sánh: <span id="compareCount">0/3 chiến dịch</span></strong><button type="button" id="compareNowBtn" class="btn btn-primary small">So sánh ngay</button><button type="button" id="clearCompareBtn" class="btn btn-outline small">Xóa chọn</button></div>
+  <div id="aiAlert" class="ai-alert hidden" role="alert"><div class="ai-alert-top"><h3 id="aiErrorTitle">Không kết nối được AI</h3><button type="button" id="closeAiAlert" aria-label="Đóng thông báo">✕</button></div><p id="aiErrorBody"></p><details><summary>Xem chi tiết kỹ thuật</summary><p id="aiErrorDetail"></p></details><div class="ai-alert-actions"><a id="quotaLink" href="https://ai.dev/rate-limit" target="_blank" rel="noopener noreferrer" class="hidden">Kiểm tra hạn mức Gemini ↗</a><button type="button" id="retryAfterErrorBtn" class="btn btn-outline small">Thử lại</button></div></div>
+  <div id="progressPanel" class="generation-progress hidden" role="status"><span class="spin">✦</span><span id="progressLabel">AI đang lên ý tưởng</span><button type="button" id="cancelGenerationBtn">Hủy yêu cầu</button></div>
+  <dialog id="editDialog" class="studio-dialog" aria-label="Chỉnh sửa chiến dịch"><div class="studio-dialog-head"><div><span class="section-overline">CHỈNH SỬA KẾ HOẠCH</span><h2>Cá nhân hóa chiến dịch</h2></div><button type="button" onclick="this.closest('dialog').close()" aria-label="Đóng">✕</button></div><form id="editForm"></form></dialog>
+  <dialog id="compareDialog" class="studio-dialog comparison-dialog" aria-label="So sánh chiến dịch"><div id="comparisonContent"></div></dialog>
+  <div id="printReport" aria-hidden="true"></div>
   <dialog id="detailsDialog" class="details-dialog" aria-label="Chi tiết chiến dịch"><div id="detailsContent"></div></dialog>
   <script src="app.js" defer></script>
+  <script src="studio.js" defer></script>
 </body>
 </html>
