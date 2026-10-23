@@ -69,7 +69,7 @@ function validateInput(body) {
   if (!body || !['test','generate','list-models'].includes(body.action)) return 'Hành động không hợp lệ.';
   if (!['gemini','openai'].includes(body.provider)) return 'Nền tảng chỉ hỗ trợ Gemini và OpenAI.';
   if (typeof body.apiKey !== 'string' || body.apiKey.trim().length < 8 || body.apiKey.length > 500) return 'API Key chưa đúng định dạng hoặc chưa được nhập.';
-  if (body.action !== 'list-models' && (typeof body.model !== 'string' || !/^[a-zA-Z0-9._-]{3,80}$/.test(body.model))) return 'Model không hợp lệ.';
+  if (body.action !== 'list-models' && (typeof body.model !== 'string' || !/^[a-zA-Z0-9._-]{2,80}$/.test(body.model))) return 'Model không hợp lệ.';
   if (body.action === 'generate') {
     const brief=body.brief;
     if (!brief || typeof brief !== 'object') return 'Thiếu brief chiến dịch.';
@@ -101,9 +101,9 @@ async function providerRequest(url, options = {}, key) {
 }
 // Query the provider instead of assuming that every predefined model is accessible.
 function isTextModel(provider,model) {
-  if(!/^[a-zA-Z0-9._-]{3,80}$/.test(model))return false;
+  if(!/^[a-zA-Z0-9._-]{2,80}$/.test(model))return false;
   if(provider==='gemini')return /^gemini-(?:[234](?:\.\d+)?|flash|pro)/.test(model) && !/(?:image|audio|tts|live|embedding|transcribe|robotics|computer-use|omni|speech)/i.test(model);
-  return /^gpt-[456](?:\.|-|$)/.test(model) && !/(?:pro|codex|image|realtime|audio|tts|transcrib|search|chat-latest|vision|instruct|embedding|moderation)/i.test(model);
+  return /^(?:gpt-[456](?:\.|-|$)|o[1-9](?:-|$))/.test(model) && !/(?:codex|image|realtime|audio|tts|transcrib|search|chat-latest|vision|instruct|embedding|moderation|preview-vision)/i.test(model);
 }
 async function listProviderModels(provider,key) {
   let names=[];
@@ -146,14 +146,18 @@ async function openAI(action,model,apiKey,prompt) {
     await providerRequest(`https://api.openai.com/v1/models/${encodeURIComponent(model)}`,{method:'GET',headers:apiHeaders},apiKey);
     return {ok:true};
   }
-  const data=await providerRequest('https://api.openai.com/v1/chat/completions',{
+  // Responses API hỗ trợ các dòng model văn bản hiện đại rộng hơn Chat Completions.
+  const data=await providerRequest('https://api.openai.com/v1/responses',{
     method:'POST',headers:apiHeaders,body:JSON.stringify({
-      model,max_completion_tokens:10000,response_format:{type:'json_object'},
-      ...(/^gpt-[456](?:\.|-)/.test(model) && !/^gpt-4/.test(model) ? {reasoning_effort:'low'} : {temperature:0.7}),
-      messages:[{role:'system',content:'Bạn là chuyên gia tư vấn Marketing. Luôn xuất JSON hợp lệ, không có Markdown.'},{role:'user',content:prompt}]
+      model,store:false,max_output_tokens:12000,
+      instructions:'Bạn là chuyên gia tư vấn Marketing. Chỉ xuất một JSON object hợp lệ, không có Markdown.',
+      input:prompt,
+      text:{format:{type:'json_object'}}
     })
   },apiKey);
-  const content=data.choices?.[0]?.message?.content;
+  const content=typeof data.output_text==='string' ? data.output_text : (data.output||[])
+    .filter(item=>item.type==='message').flatMap(item=>item.content||[])
+    .filter(part=>part.type==='output_text').map(part=>part.text||'').join('');
   if (!content) throw new Error('OpenAI chưa tạo được nội dung. Hãy thử lại hoặc đổi model.');
   return parseCampaigns(content);
 }

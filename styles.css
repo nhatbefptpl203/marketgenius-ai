@@ -17,3 +17,20 @@
 .fetch-models-btn:disabled{opacity:.55;cursor:wait}
 .fetch-models-btn .icon{height:14px;width:14px}
 .model-list-info{font-size:9px;line-height:1.7;color:#8498bb;margin:8px 0 0}
+
+/* API Key onboarding and model sync — v1.2 */
+.api-guide{background:#131f40;border:1px solid #425079;border-radius:11px;margin:11px 0 13px;overflow:hidden}
+.api-guide summary{display:flex;align-items:center;gap:7px;padding:11px 10px;color:#e7eaff;font-size:10px;font-weight:750;cursor:pointer;list-style:none}
+.api-guide summary::-webkit-details-marker{display:none}
+.api-guide summary .icon{width:14px;height:14px;color:#bdadff;flex-shrink:0}
+.api-guide summary span{flex:1}
+.api-guide summary .guide-caret{transition:transform .2s}
+.api-guide[open] summary .guide-caret{transform:rotate(180deg)}
+.guide-content{padding:0 11px 10px;font-size:10px;color:#c4cee7;line-height:1.75}
+.guide-content ol{padding-left:17px;margin:4px 0 10px}
+.guide-content li{margin-bottom:6px}
+.guide-content strong{color:#f4f2ff}
+.guide-link{display:block;text-align:center;background:#725ef0;color:white;border-radius:8px;padding:10px 7px;font-size:10px;font-weight:750}
+.guide-link:hover{background:#8b75ff}
+.guide-security{color:#9faecf;font-size:9px;line-height:1.7;border-top:1px solid #344263;padding:9px 11px;margin:0}
+#model:disabled{opacity:.64;cursor:not-allowed}

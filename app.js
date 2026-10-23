@@ -14,88 +14,103 @@ const icons = {
 };
 const state = { ideas: [], saved: loadSaved(), source: '', brief: null, loading: false, connected: false, view: 'create' };
 
-// Danh sách gợi ý. Người dùng có thể tải thêm model thực tế bằng chính API Key.
-const MODEL_PRESETS = {
-  gemini: [
-    {id:'gemini-3.8-flash',label:'Gemini 3.8 Flash · Đề xuất',group:'⭐ Nên dùng',hint:'Mạnh, đa năng; phù hợp tạo ý tưởng marketing.'},
-    {id:'gemini-3.5-flash-lite',label:'Gemini 3.5 Flash-Lite · Tiết kiệm',group:'⭐ Nên dùng',hint:'Ưu tiên chi phí và tốc độ.'},
-    {id:'gemini-4-argon',label:'Gemini 4 Argon · Mạnh',group:'Gemini 4',hint:'Model suy luận cao cấp; kiểm tra quota và chi phí trước khi dùng.'},
-    {id:'gemini-3.6-flash',label:'Gemini 3.6 Flash',group:'Gemini 3.x',hint:'Cân bằng chất lượng và tốc độ.'},
-    {id:'gemini-3.1-pro-preview',label:'Gemini 3.1 Pro · Preview',group:'Gemini 3.x',hint:'Ưu tiên bài toán cần phân tích sâu; bản preview có thể có hạn mức khác.'},
-    {id:'gemini-3-flash-preview',label:'Gemini 3 Flash · Preview',group:'Gemini 3.x',hint:'Model Flash thế hệ 3 bản preview.'},
-    {id:'gemini-3.1-flash-lite',label:'Gemini 3.1 Flash-Lite',group:'Gemini 3.x',hint:'Model gọn, phù hợp khối lượng lớn.'},
-    {id:'gemini-2.5-flash',label:'Gemini 2.5 Flash · Đời cũ',group:'Gemini 2.5 · Có thể bị giới hạn',hint:'Một số API Key mới có thể không truy cập được dòng 2.5.'},
-    {id:'gemini-2.5-pro',label:'Gemini 2.5 Pro · Đời cũ',group:'Gemini 2.5 · Có thể bị giới hạn',hint:'Model suy luận thế hệ 2.5; phụ thuộc quyền tài khoản.'},
-    {id:'gemini-2.5-flash-lite',label:'Gemini 2.5 Flash-Lite · Đời cũ',group:'Gemini 2.5 · Có thể bị giới hạn',hint:'Ưu tiên tốc độ; có thể bị giới hạn trên dự án mới.'}
-  ],
-  openai: [
-    {id:'gpt-5.4-mini',label:'GPT-5.4 Mini · Đề xuất',group:'⭐ Nên dùng',hint:'Cân bằng chất lượng, tốc độ và chi phí.'},
-    {id:'gpt-6-luna',label:'GPT-6 Luna · Tiết kiệm',group:'⭐ Nên dùng',hint:'Ưu tiên tốc độ và chi phí cho nội dung Marketing.'},
-    {id:'gpt-6.1-sol',label:'GPT-6.1 Sol',group:'GPT-6',hint:'Cân bằng năng lực phân tích và chi phí.'},
-    {id:'gpt-6-astra',label:'GPT-6 Astra',group:'GPT-6',hint:'Ưu tiên chất lượng; chi phí có thể cao.'},
-    {id:'gpt-5.6-terra',label:'GPT-5.6 Terra',group:'GPT-5',hint:'Cân bằng năng lực và chi phí, tùy quyền API.'},
-    {id:'gpt-5.6-luna',label:'GPT-5.6 Luna',group:'GPT-5',hint:'Hướng tới các tác vụ chi phí nhạy cảm, tùy quyền API.'},
-    {id:'gpt-5.5',label:'GPT-5.5',group:'GPT-5',hint:'Model mạnh cho công việc chuyên môn.'},
-    {id:'gpt-5.4',label:'GPT-5.4',group:'GPT-5',hint:'Phù hợp hoạch định chiến lược và nội dung.'},
-    {id:'gpt-5.2',label:'GPT-5.2',group:'GPT-5',hint:'Model thế hệ trước; tùy quyền truy cập.'},
-    {id:'gpt-5-mini',label:'GPT-5 Mini',group:'GPT-5',hint:'Phương án tiết kiệm thuộc dòng GPT-5.'},
-    {id:'gpt-4.1-mini',label:'GPT-4.1 Mini · Đời cũ',group:'GPT-4 · Có thể bị ngừng',hint:'Chỉ sử dụng nếu API Key của bạn còn hỗ trợ.'},
-    {id:'gpt-4o-mini',label:'GPT-4o Mini · Đời cũ',group:'GPT-4 · Có thể bị ngừng',hint:'Chỉ sử dụng nếu API Key của bạn còn hỗ trợ.'}
-  ]
-};
-const syncedModels = {gemini:[],openai:[]};
+// Không có danh sách model dựng sẵn: chỉ hiển thị model từ API Key đang nhập.
+// Danh sách chỉ được giữ trong bộ nhớ của tab, KHÔNG lưu API Key hoặc model vào localStorage.
+let modelListVersion = 0;
+let modelFetchTimer = null;
+let modelListLoading = false;
+let fetchedKeySignature = '';
 
 function selectedModel() {
-  return $('#model').value === '__custom__' ? $('#customModel').value.trim() : $('#model').value;
+  return $('#model').disabled ? '' : $('#model').value;
 }
-function modelHint() {
-  const custom=$('#model').value==='__custom__';
-  $('#customModel').classList.toggle('hidden',!custom);
-  const selected=MODEL_PRESETS[$('#provider').value].find(item=>item.id===$('#model').value);
-  $('#modelHint').textContent=custom ? 'Chỉ dùng nếu bạn biết chính xác ID và model hỗ trợ tạo văn bản/JSON.' : selected?.hint || 'Model được nhà cung cấp trả về; hãy kiểm tra kết nối trước khi dùng.';
-  if(custom) $('#customModel').focus();
+function setGuide(provider) {
+  $('#geminiGuide').classList.toggle('hidden', provider !== 'gemini');
+  $('#openaiGuide').classList.toggle('hidden', provider !== 'openai');
+  $('#apiGuideHeading').textContent = provider === 'gemini' ? 'Hướng dẫn lấy Gemini API Key' : 'Hướng dẫn lấy OpenAI API Key';
+  $('#apiGuide').open = true;
 }
-function populateModels(provider,preferred) {
-  const select=$('#model');select.innerHTML='';
-  const groups=new Map();
-  for(const entry of MODEL_PRESETS[provider]) {
-    if(!groups.has(entry.group))groups.set(entry.group,[]);
-    groups.get(entry.group).push(entry);
+function clearModelPicker(message = 'Nhập API Key để hiện model') {
+  const sel = $('#model');
+  sel.replaceChildren(new Option(message, ''));
+  sel.disabled = true;
+  $('#modelCount').textContent = '0 model';
+  $('#modelHint').textContent = 'Model sẽ hiển thị khi nhà cung cấp trả về danh sách cho API Key này.';
+}
+function populateModels(models) {
+  const sel = $('#model');
+  const ids = [...new Set(models)].filter(id => typeof id === 'string' && id);
+  sel.replaceChildren();
+  if (!ids.length) {
+    clearModelPicker('Không có model tạo văn bản phù hợp');
+    return;
   }
-  const baseIds=new Set(MODEL_PRESETS[provider].map(item=>item.id));
-  const apiOnly=syncedModels[provider].filter(id=>!baseIds.has(id));
-  if(apiOnly.length)groups.set('↻ Từ API Key của bạn',apiOnly.map(id=>({id,label:id})));
-  for(const [name,items] of groups) {
-    const group=document.createElement('optgroup');group.label=name;
-    for(const item of items) {const option=document.createElement('option');option.value=item.id;option.textContent=item.label;group.append(option);}
-    select.append(group);
+  for (const id of ids) sel.add(new Option(id, id));
+  sel.disabled = false;
+  $('#modelCount').textContent = `${ids.length} model`;
+  $('#modelHint').textContent = 'Chỉ gồm model nhà cung cấp đã liệt kê cho key này. Quyền sử dụng và hạn mức cần xác thực riêng.';
+}
+function invalidateModels(message) {
+  modelListVersion++;
+  clearTimeout(modelFetchTimer);
+  modelFetchTimer = null;
+  modelListLoading = false;
+  fetchedKeySignature = '';
+  clearModelPicker();
+  const available = $('#apiKey').value.trim().length >= 8;
+  $('#loadModelsBtn').disabled = !available;
+  $('#loadModelsBtn').querySelector('span').textContent = 'Tải lại model từ API Key';
+  $('#modelListInfo').textContent = message || 'Dán API Key để tự động tải danh sách model.';
+  resetConnection();
+}
+function scheduleModelFetch() {
+  invalidateModels('Đang chờ nhập xong API Key để lấy danh sách model…');
+  if ($('#apiKey').value.trim().length < 8) {
+    $('#modelListInfo').textContent = 'Dán API Key vào ô trên, hệ thống sẽ tự động tải model.';
+    return;
   }
-  const custom=document.createElement('option');custom.value='__custom__';custom.textContent='✎ Model khác (nhập ID nâng cao)';select.append(custom);
-  const ids=[...baseIds,...apiOnly];
-  select.value=preferred && ids.includes(preferred) ? preferred : MODEL_PRESETS[provider][0].id;
-  $('#modelCount').textContent=`${ids.length} model`;
-  modelHint();
+  modelFetchTimer = setTimeout(() => loadModelList(), 950);
 }
 async function loadModelList() {
-  const apiKey=$('#apiKey').value.trim(),provider=$('#provider').value;
-  if(!apiKey) {notify('Hãy nhập API Key để tải danh sách model từ tài khoản của bạn.','error');$('#apiKey').focus();return;}
-  const btn=$('#loadModelsBtn');btn.disabled=true;btn.querySelector('span').textContent='Đang tải danh sách...';
-  $('#modelListInfo').textContent='Đang hỏi nhà cung cấp các model hỗ trợ tạo văn bản...';
+  const apiKey = $('#apiKey').value.trim();
+  const provider = $('#provider').value;
+  if (apiKey.length < 8) {
+    notify('Hãy nhập đầy đủ API Key trước khi tải danh sách model.', 'error');
+    $('#apiKey').focus();
+    return;
+  }
+  clearTimeout(modelFetchTimer);
+  modelFetchTimer = null;
+  const current = ++modelListVersion;
+  modelListLoading = true;
+  clearModelPicker('Đang tải model từ tài khoản…');
+  $('#loadModelsBtn').disabled = true;
+  $('#loadModelsBtn').querySelector('span').textContent = 'Đang lấy model…';
+  $('#modelCount').textContent = 'Đang tải';
+  $('#modelListInfo').textContent = 'Đang xác thực khóa và lấy model trực tiếp từ nhà cung cấp…';
   try {
-    const data=await apiRequest({action:'list-models',provider,apiKey});
-    if($('#provider').value!==provider) return;
-    syncedModels[provider]=data.models;
-    const original=selectedModel();
-    const suggested=MODEL_PRESETS[provider].find(item=>data.models.includes(item.id))?.id || data.models[0];
-    const chosen=data.models.includes(original) ? original : suggested || original;
-    populateModels(provider,chosen);
-    if(chosen!==original)resetConnection();
-    $('#modelListInfo').textContent=data.models.length
-      ? `API trả về ${data.models.length} model tạo văn bản. ${chosen!==original?'Đã chuyển sang '+chosen+'. ':''}Quyền tạo nội dung và hạn mức cần được thử thực tế.`
-      : 'API không trả về model tạo văn bản phù hợp. Bạn có thể chọn model có sẵn hoặc nhập ID nâng cao.';
-    notify(`Đã đồng bộ ${data.models.length} model từ API Key!`);
-  } catch(error){$('#modelListInfo').textContent=`Không lấy được danh sách: ${error.message}`;notify(error.message,'error');}
-  finally{btn.disabled=false;btn.querySelector('span').textContent='Lấy model từ API Key';}
+    const data = await apiRequest({action:'list-models', provider, apiKey});
+    // Nếu người dùng đổi nền tảng hoặc key khi request đang chạy, loại bỏ kết quả cũ.
+    if (current !== modelListVersion || provider !== $('#provider').value || apiKey !== $('#apiKey').value.trim()) return;
+    const models = Array.isArray(data.models) ? data.models : [];
+    populateModels(models);
+    fetchedKeySignature = `${provider}:${apiKey}`;
+    $('#modelListInfo').textContent = models.length
+      ? `Đã lấy ${models.length} model từ API Key của bạn. Chọn model và bấm “Kiểm tra kết nối” trước khi sử dụng.`
+      : 'API Key hợp lệ nhưng không tìm thấy model tạo văn bản tương thích. Kiểm tra quyền dự án hoặc thử khóa khác.';
+    notify(models.length ? `Đã tải ${models.length} model từ nhà cung cấp.` : 'Không tìm thấy model tạo văn bản phù hợp.', models.length ? 'success' : 'error');
+  } catch(error) {
+    if (current !== modelListVersion || apiKey !== $('#apiKey').value.trim()) return;
+    clearModelPicker('Không tải được model');
+    $('#modelListInfo').textContent = `Không tải được model: ${error.message}`;
+    notify(error.message, 'error');
+  } finally {
+    if (current === modelListVersion) {
+      modelListLoading = false;
+      $('#loadModelsBtn').disabled = state.loading || $('#apiKey').value.trim().length < 8;
+      $('#loadModelsBtn').querySelector('span').textContent = 'Tải lại model từ API Key';
+    }
+  }
 }
 
 
@@ -312,14 +327,14 @@ async function testConnection() {
   const provider = $('#provider').value;
   const model = selectedModel();
   if (!apiKey) { notify('Hãy dán API Key của bạn vào ô bên trái.','error'); $('#apiKey').focus(); return; }
-  if (!model) { notify('Hãy chọn hoặc nhập một model AI.','error'); $('#model').focus(); return; }
+  if (!model) { notify(modelListLoading ? 'Danh sách model đang tải. Hãy đợi hoàn tất.' : 'Hãy nhập API Key và tải danh sách model trước.', 'error'); $('#model').focus(); return; }
   $('#connectBtn').disabled = true;
   $('#connectBtn').querySelector('span').textContent = 'Đang kiểm tra...';
   setApiStatus('Đang xác thực API Key...', '');
   try {
     await apiRequest({action:'test',provider,apiKey,model});
     setApiStatus(`Đã kết nối ${provider==='gemini'?'Gemini':'OpenAI'} · ${model}`,'connected');
-    notify('API Key hợp lệ! Website đã sẵn sàng tạo chiến dịch bằng AI thật.');
+    notify('API Key và model đã được nhận diện. Khi tạo chiến dịch, quota và khả năng tạo nội dung sẽ được kiểm tra thực tế.');
   } catch (error) { setApiStatus(error.message,'failed'); notify(error.message,'error'); }
   finally { $('#connectBtn').disabled = false; $('#connectBtn').querySelector('span').textContent = 'Kiểm tra kết nối'; }
 }
@@ -333,6 +348,10 @@ async function generate(useDemo = false) {
     notify('Để tạo bằng AI thật, hãy nhập API Key. Hoặc nhấn “Thử demo”.','error');
     $('#apiKey').focus();
     if (window.innerWidth <= 990) openMobileMenu();
+    return;
+  }
+  if (!useDemo && (!selectedModel() || fetchedKeySignature !== `${$('#provider').value}:${$('#apiKey').value.trim()}`)) {
+    notify('Hãy tải model theo API Key và chọn model trước khi tạo bằng AI thật.', 'error');
     return;
   }
   state.brief = brief;
@@ -388,18 +407,28 @@ $('#toggleKey').addEventListener('click',()=>{
   $('#toggleKey').setAttribute('aria-label',input.type==='password'?'Hiện API Key':'Ẩn API Key');
 });
 $('#clearKeyBtn').addEventListener('click',()=>{
-  $('#apiKey').value='';$('#apiKey').type='password';
-  $('#toggleKey').innerHTML='<svg class="icon"><use href="#i-eye"/></svg>';
-  resetConnection(); notify('Đã xóa API Key khỏi ô nhập.');
+  $('#apiKey').value = '';
+  $('#apiKey').type = 'password';
+  $('#toggleKey').innerHTML = '<svg class="icon"><use href="#i-eye"/></svg>';
+  invalidateModels('API Key đã được xóa. Danh sách model cũng đã xóa.');
+  notify('Đã xóa API Key và danh sách model khỏi trang.');
 });
-$('#provider').addEventListener('change',()=>{ $('#apiKey').value='';$('#customModel').value='';syncedModels.gemini=[];syncedModels.openai=[];populateModels($('#provider').value);$('#modelListInfo').textContent='Hãy nhập API Key của nền tảng mới rồi lấy danh sách model.';resetConnection(); });
-$('#apiKey').addEventListener('input',()=>{syncedModels[$('#provider').value]=[];populateModels($('#provider').value,selectedModel());$('#modelListInfo').textContent='Nếu thay API Key, hãy lấy lại danh sách model của key mới.';resetConnection();});
-$('#model').addEventListener('change',()=>{modelHint();resetConnection();});
-$('#customModel').addEventListener('input',resetConnection);
+$('#provider').addEventListener('change',()=>{
+  $('#apiKey').value = '';
+  setGuide($('#provider').value);
+  invalidateModels('Đã đổi nền tảng. Nhập API Key tương ứng để tải model.');
+});
+$('#apiKey').addEventListener('input', scheduleModelFetch);
+$('#apiKey').addEventListener('blur',()=>{
+  if (modelFetchTimer) loadModelList();
+});
+$('#model').addEventListener('change', resetConnection);
 $('#copyAllBtn').addEventListener('click',()=>{
   if (!state.saved.length) {notify('Chưa có ý tưởng nào để sao chép.','error');return;}
   copyText(`MARKETGENIUS AI — SHORTLIST\n\n${state.saved.map((idea,i)=>`${i+1}. ${ideaToText(idea)}`).join('\n\n────────────────────\n\n')}`);
 });
 $('#detailsDialog').addEventListener('click',event=>{if(event.target===$('#detailsDialog'))$('#detailsDialog').close();});
-populateModels('gemini');
+setGuide('gemini');
+clearModelPicker();
+$('#loadModelsBtn').disabled = true;
 updateCounters();renderShortlist();

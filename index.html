@@ -51,20 +51,31 @@
         <div class="api-panel-head"><div class="api-symbol"><svg class="icon"><use href="#i-key"/></svg></div><div><strong>Kết nối AI của bạn</strong><small>Dùng API Key cá nhân</small></div></div>
         <label class="field-label inverse" for="provider">Nền tảng AI</label>
         <select id="provider" class="dark-input" autocomplete="off"><option value="gemini">Google Gemini</option><option value="openai">OpenAI</option></select>
+        <details class="api-guide" id="apiGuide" open>
+          <summary><svg class="icon"><use href="#i-key"/></svg><span id="apiGuideHeading">Hướng dẫn lấy Gemini API Key</span><svg class="icon guide-caret"><use href="#i-chev"/></svg></summary>
+          <div id="geminiGuide" class="guide-content">
+            <ol><li>Nhấn <strong>Mở Google AI Studio</strong> bên dưới và đăng nhập tài khoản Google.</li><li>Vào mục <strong>API Keys</strong>, chọn <strong>Create API key</strong> (nếu chưa có).</li><li>Sao chép khóa của bạn và dán vào ô <strong>API Key</strong> ở đây.</li></ol>
+            <a class="guide-link" href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer">Mở Google AI Studio ↗</a>
+          </div>
+          <div id="openaiGuide" class="guide-content hidden">
+            <ol><li>Nhấn <strong>Mở OpenAI API Keys</strong> và đăng nhập tài khoản OpenAI.</li><li>Chọn dự án, nhấn <strong>Create new secret key</strong> để tạo khóa.</li><li>Sao chép khóa và dán vào ô <strong>API Key</strong>. API OpenAI có thể yêu cầu thiết lập thanh toán riêng với ChatGPT.</li></ol>
+            <a class="guide-link" href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer">Mở OpenAI API Keys ↗</a>
+          </div>
+          <p class="guide-security">Không chia sẻ API Key trong bình luận, ảnh chụp màn hình hoặc GitHub. Việc gọi API có thể phát sinh phí theo tài khoản của bạn.</p>
+        </details>
         <label class="field-label inverse" for="apiKey">API Key</label>
         <div class="key-wrap"><input id="apiKey" class="dark-input" type="password" placeholder="Dán API Key tại đây..." autocomplete="off" spellcheck="false" /><button id="toggleKey" class="icon-button dark-icon" aria-label="Hiện API Key" type="button"><svg class="icon"><use href="#i-eye"/></svg></button></div>
-        <div class="model-label-line"><label class="field-label inverse" for="model">Model AI</label><span class="model-count" id="modelCount">Đang tải</span></div>
-        <div class="model-select-wrap"><select id="model" class="dark-input" aria-describedby="modelHint" autocomplete="off"></select><svg class="icon"><use href="#i-chev"/></svg></div>
-        <input id="customModel" class="dark-input hidden custom-model" type="text" placeholder="Nhập ID model nâng cao..." autocomplete="off" spellcheck="false" maxlength="80" aria-label="Nhập ID model tùy chỉnh" />
-        <p id="modelHint" class="model-hint">Chọn model phù hợp với nhu cầu của bạn.</p>
-        <button id="loadModelsBtn" class="fetch-models-btn" type="button"><svg class="icon"><use href="#i-rotate"/></svg><span>Lấy model từ API Key</span></button>
-        <p id="modelListInfo" class="model-list-info" role="status">Model có thể thay đổi theo quyền truy cập API Key. Bấm nút trên để xem danh sách nhà cung cấp trả về.</p>
+        <div class="model-label-line"><label class="field-label inverse" for="model">Model AI (theo API Key)</label><span class="model-count" id="modelCount">0 model</span></div>
+        <div class="model-select-wrap"><select id="model" class="dark-input" aria-describedby="modelHint" autocomplete="off" disabled><option value="">Nhập API Key để hiện model</option></select><svg class="icon"><use href="#i-chev"/></svg></div>
+        <p id="modelHint" class="model-hint">Danh sách model được lấy tự động từ API Key bạn nhập.</p>
+        <button id="loadModelsBtn" class="fetch-models-btn" type="button"><svg class="icon"><use href="#i-rotate"/></svg><span>Tải lại model từ API Key</span></button>
+        <p id="modelListInfo" class="model-list-info" role="status">Dán API Key để tự động tải danh sách model tạo văn bản. Không hiển thị model cố định.</p>
         <button id="connectBtn" class="connect-button" type="button"><svg class="icon"><use href="#i-link"/></svg><span>Kiểm tra kết nối</span></button>
         <button id="clearKeyBtn" class="text-link" type="button">Xóa API Key khỏi trang</button>
         <div id="apiStatus" class="api-status" role="status"><span class="status-dot"></span><span>Chưa kết nối · Có thể thử demo</span></div>
         <p class="privacy-note">Key chỉ được giữ trong tab đang mở và gửi qua HTTPS đến Function của website để gọi AI. Không lưu vào localStorage.</p>
       </section>
-      <div class="sidebar-bottom"><div class="help-illustration">✦ <span>AI</span> ✳</div><strong>Ý tưởng tốt bắt đầu từ một câu hỏi.</strong><p>Biến brief thành chiến dịch trong vài phút.</p><span class="version">VIBE CODING 2026 • v1.1</span></div>
+      <div class="sidebar-bottom"><div class="help-illustration">✦ <span>AI</span> ✳</div><strong>Ý tưởng tốt bắt đầu từ một câu hỏi.</strong><p>Biến brief thành chiến dịch trong vài phút.</p><span class="version">VIBE CODING 2026 • v1.2</span></div>
     </aside>
 
     <div class="workspace">

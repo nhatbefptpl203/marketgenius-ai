@@ -84,3 +84,14 @@ Không đưa API Key vào repository, URL hay ảnh chụp màn hình.
 - API Key không được lưu vào localStorage; khi chuyển nhà cung cấp, ô API Key được xóa để tránh vô tình gửi sang nền tảng khác.
 - Các model hiện đại có thể khác nhau về tính năng, billing hoặc định dạng kết quả; nếu model báo lỗi, chọn model gợi ý khác rồi thử lại.
 - Chế độ Demo và tất cả chức năng shortlist không thay đổi.
+
+
+## Phiên bản 1.2: Tự lấy model theo API Key + hướng dẫn lấy key
+
+- Không có danh sách model dựng sẵn. Khi người dùng dán API Key và ngừng nhập, website tự truy vấn nhà cung cấp bằng Netlify Function rồi mở danh sách model phù hợp. Có nút **Tải lại model từ API Key**.
+- Đổi Gemini ↔ OpenAI hoặc thay/xóa API Key sẽ xóa model cũ ngay. Không dùng model của key trước cho key sau.
+- Hướng dẫn trong thanh bên thay đổi tự động theo Gemini/OpenAI, liên kết trang tạo API Key chính thức: https://aistudio.google.com/apikey và https://platform.openai.com/api-keys.
+- Khóa API chỉ được giữ tạm trong trang đang mở, không lưu localStorage hay ghi vào GitHub. Website gửi khóa qua HTTPS tới Netlify Function để gọi nhà cung cấp; chủ trang phải tự bảo mật backend, cấu hình HTTPS, giám sát logs và tuân thủ chính sách nhà cung cấp.
+- Gemini: lọc các model hỗ trợ `generateContent`; OpenAI: lọc danh sách model `gpt-*`/`o*` phù hợp tạo văn bản. Danh sách là các model được API liệt kê, **không đảm bảo còn hạn mức hoặc model chắc chắn hỗ trợ mọi endpoint**. Dùng **Kiểm tra kết nối** và chạy thử để xác nhận.
+- Backend OpenAI sử dụng Responses API để hỗ trợ các model tạo văn bản mới; những model khác nhau vẫn có thể có giới hạn hoặc cấu hình không tương thích.
+- Không thể tự động kiểm tra model bằng cách mở index.html trực tiếp vì browser cần Netlify Function `/api/ai`. Upload **toàn bộ sáu file** lên GitHub, gồm `netlify/functions/ai.js`, rồi redeploy Netlify.
