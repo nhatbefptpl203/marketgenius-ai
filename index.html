@@ -68,15 +68,19 @@
         <div class="key-wrap"><input id="apiKey" class="dark-input" type="password" placeholder="Dán API Key tại đây..." autocomplete="off" spellcheck="false" /><button id="toggleKey" class="icon-button dark-icon" aria-label="Hiện API Key" type="button"><svg class="icon"><use href="#i-eye"/></svg></button></div>
         <div class="model-label-line"><label class="field-label inverse" for="model">Model AI (theo API Key)</label><span class="model-count" id="modelCount">0 model</span></div>
         <div class="model-select-wrap"><select id="model" class="dark-input" aria-describedby="modelHint" autocomplete="off" disabled><option value="">Nhập API Key để hiện model</option></select><svg class="icon"><use href="#i-chev"/></svg></div>
-        <p id="modelHint" class="model-hint">Danh sách model được lấy tự động từ API Key bạn nhập.</p>
-        <button id="loadModelsBtn" class="fetch-models-btn" type="button"><svg class="icon"><use href="#i-rotate"/></svg><span>Tải lại model từ API Key</span></button>
-        <p id="modelListInfo" class="model-list-info" role="status">Dán API Key để tự động tải danh sách model tạo văn bản. Không hiển thị model cố định.</p>
+        <p id="modelHint" class="model-hint">Chỉ hiển thị model đã xác minh tạo nội dung thành công bằng API Key này.</p>
+        <button id="loadModelsBtn" class="fetch-models-btn" type="button"><svg class="icon"><use href="#i-rotate"/></svg><span>Tải danh sách model từ API Key</span></button>
+        <button id="verifyModelsBtn" class="verify-models-btn" type="button" disabled>✓ Xác minh model dùng được</button>
+        <progress id="verifyProgress" class="verify-progress" value="0" max="100" aria-label="Tiến độ xác minh model" hidden></progress>
+        <button id="stopVerifyBtn" class="text-link" type="button" hidden>Dừng xác minh sau yêu cầu hiện tại</button>
+        <p class="model-cost-warning">Mỗi lần xác minh gửi yêu cầu tạo nội dung thật và có thể tính phí hoặc hao quota. Chỉ model xác minh thành công mới được hiển thị.</p>
+        <p id="modelListInfo" class="model-list-info" role="status">Dán API Key để lấy ứng viên, rồi nhấn Xác minh model trước khi sử dụng.</p>
         <button id="connectBtn" class="connect-button" type="button"><svg class="icon"><use href="#i-link"/></svg><span>Kiểm tra kết nối</span></button>
         <button id="clearKeyBtn" class="text-link" type="button">Xóa API Key khỏi trang</button>
         <div id="apiStatus" class="api-status" role="status"><span class="status-dot"></span><span>Chưa kết nối · Có thể thử demo</span></div>
         <p class="privacy-note">Key chỉ được giữ trong tab đang mở và gửi qua HTTPS đến Function của website để gọi AI. Không lưu vào localStorage.</p>
       </section>
-      <div class="sidebar-bottom"><div class="help-illustration">✦ <span>AI</span> ✳</div><strong>Ý tưởng tốt bắt đầu từ một câu hỏi.</strong><p>Biến brief thành chiến dịch trong vài phút.</p><span class="version">VIBE CODING 2026 • v1.3</span></div>
+      <div class="sidebar-bottom"><div class="help-illustration">✦ <span>AI</span> ✳</div><strong>Ý tưởng tốt bắt đầu từ một câu hỏi.</strong><p>Biến brief thành chiến dịch trong vài phút.</p><span class="version">VIBE CODING 2026 • v1.3.1</span></div>
     </aside>
 
     <div class="workspace">

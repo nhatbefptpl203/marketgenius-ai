@@ -1,3 +1,24 @@
+# MarketGenius AI v1.3.1 — Xác minh model Gemini & OpenAI
+
+**Nâng cấp trực tiếp từ bản v1.3**. Giữ nguyên: tạo 5 chiến dịch, timeline 4 tuần, ngân sách, chỉnh sửa, lịch sử, shortlist, so sánh và xuất PDF qua cửa sổ in.
+
+## Model theo API Key (mới)
+
+1. Chọn Google Gemini hoặc OpenAI, dán API Key cá nhân.
+2. Website gọi `list-models` để nhận các model ứng viên dạng văn bản. **Ứng viên chưa được đưa vào menu chọn.**
+3. Nhấn **Xác minh model dùng được**; đọc và đồng ý cảnh báo chi phí.
+4. Trình duyệt gọi Netlify Function `probe-model` tuần tự, mỗi lần với một model. Gemini thử `generateContent` và yêu cầu JSON ngắn; OpenAI thử `Responses API` với `text.format=json_object`, giống luồng tạo chiến dịch.
+5. **Chỉ model xác minh thành công** mới xuất hiện trong menu. Có tiến trình và nút dừng. Không có model định sẵn.
+6. Khi thay API Key, nhà cung cấp hoặc tải lại danh sách, model xác minh của key cũ bị xóa. Không lưu key vào localStorage.
+
+**Giới hạn:** Yêu cầu xác minh có thể mất tiền/token hoặc quota; 429/503 có thể chỉ là tạm thời. Model qua kiểm tra tại thời điểm này vẫn có thể lỗi về sau. Kiểm tra JSON nhỏ không đảm bảo yêu cầu lớn tạo đủ 5 chiến dịch luôn thành công.
+
+## Deploy
+
+Đẩy toàn bộ nội dung thư mục `marketgenius-ai` lên nhánh `main` của repo đã nối Netlify, thay các file cũ ở gốc, giữ đúng `netlify/functions/ai.js`. Không đưa API Key lên GitHub. Netlify phải có cấu hình `netlify.toml`.
+
+**Các file cập nhật:** `index.html`, `app.js`, `styles.css`, `netlify/functions/ai.js`, `README.md`. Giữ nguyên `studio.js` của v1.3 (đã bao gồm trong ZIP).
+
 # MarketGenius AI — Campaign Studio v1.3
 
 Website dự thi **Vibe Coding 2026 — Đề 09: AI gợi ý ý tưởng chiến dịch Marketing**. Giữ nguyên năm chức năng gốc, đồng thời bổ sung khả năng quản lý, chỉnh sửa và xuất kế hoạch.
@@ -55,9 +76,9 @@ Nhấn **Xuất PDF** → trình duyệt mở cửa sổ In → trong mục **De
 2. Chọn **Google Gemini** hoặc **OpenAI** trong thanh bên. Xem hướng dẫn lấy API Key có sẵn, kèm liên kết chính thức:
    - Gemini: https://aistudio.google.com/apikey
    - OpenAI: https://platform.openai.com/api-keys
-3. Dán **API Key cá nhân**. Website tự lấy các ID model tạo văn bản mà nhà cung cấp liệt kê, không có danh sách model cố định khi chưa nhập key.
-4. Chọn model → nhấn **Kiểm tra kết nối** → nhập brief và nhấn **Tạo 5 ý tưởng**.
-5. Model được liệt kê và kết nối thành công **chưa đảm bảo còn quota, tương thích 100% với định dạng JSON hoặc đủ quyền tạo nội dung**. Nếu gặp lỗi, xem lời giải thích trên website.
+3. Dán **API Key cá nhân**. Website tự lấy các ID model ứng viên từ nhà cung cấp; ứng viên chưa xuất hiện trong menu chọn.
+4. Nhấn **Xác minh model dùng được**, xác nhận chi phí, đợi từng lần kiểm tra. Chỉ model kiểm tra thành công mới xuất hiện. Chọn model → nhấn **Kiểm tra kết nối** → tạo 5 ý tưởng.
+5. Model xác minh thành công **chỉ chứng minh tạo được JSON nhỏ tại thời điểm kiểm tra**; quota, quyền hay tương thích có thể thay đổi với yêu cầu thực tế. Nếu gặp lỗi, xem hướng dẫn trên website.
 
 ### Giải thích lỗi phổ biến
 
@@ -73,7 +94,7 @@ Nhấn **Xuất PDF** → trình duyệt mở cửa sổ In → trong mục **De
 3. Trong GitHub, cập nhật file cũ và thêm file mới vào nhánh `main`, rồi Commit changes. Có thể dùng GitHub Desktop để đồng bộ toàn bộ thư mục dễ dàng hơn khi thay nhiều file.
 4. Netlify đang liên kết repository sẽ tự redeploy khi nhận commit mới (nếu tính năng deploy tự động đang bật).
 5. Trong Netlify, cấu hình: **Build command** trống; **Publish directory** `.`; **Functions directory** `netlify/functions` (đã thiết lập trong `netlify.toml`).
-6. Mở https://ph67401.netlify.app/ và nhấn **Ctrl + Shift + R** để lấy bản mới. Kiểm tra thanh bên có mục **Lịch sử tạo** và góc dưới có `v1.3`.
+6. Mở https://ph67401.netlify.app/ và nhấn **Ctrl + Shift + R** để lấy bản mới. Kiểm tra thanh bên có mục **Lịch sử tạo** và góc dưới có `v1.3.1`.
 
 ### Chạy trên máy bằng Netlify CLI (AI thật)
 
@@ -101,7 +122,7 @@ Không cần npm dependencies trong mã nguồn ứng dụng. Chế độ Demo c
 - [ ] Lịch sử có lần tạo vừa rồi và nút mở lại hoạt động.
 - [ ] So sánh 2–3 chiến dịch; trường hợp 4 chiến dịch phải bị giới hạn.
 - [ ] Xuất PDF giữ đúng tiếng Việt và định dạng bảng A4.
-- [ ] Nhập API Key thật trên Netlify: danh sách model tải được và gọi AI có nội dung thật (cần quota).
+- [ ] Nhập API Key thật trên Netlify: tải ứng viên, xác minh bằng yêu cầu AI ngắn, chỉ model thành công mới hiện trong menu (cần quota).
 - [ ] Giới hạn 429/503 thông báo rõ, giữ nguyên brief đã nhập.
 
 > Bản 1.3 đã được kiểm thử UI trong trình duyệt bằng dữ liệu DEMO và bằng phản hồi 429/503 mô phỏng. Đã kiểm thử bản in A4 với PDF có thể chọn và sao chép chữ tiếng Việt. Chưa thử API Key thật của người dùng.

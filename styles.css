@@ -108,3 +108,12 @@
  .pdf-compare-summary h2{font-size:15pt;color:#473aa4}
  .pdf-compare-summary .studio-table th,.pdf-compare-summary .studio-table td{font-size:8pt;word-break:break-word}
 }
+
+/* v1.3.1 – verify models with a real generation request (Gemini & OpenAI). */
+.verify-models-btn{display:block;width:100%;margin-top:9px;background:linear-gradient(100deg,#6654e4,#8874ff);color:#fff;border:0;border-radius:9px;padding:11px 8px;font-size:10.5px;font-weight:750;transition:opacity .15s,transform .15s}
+.verify-models-btn:hover:not(:disabled){transform:translateY(-1px)}
+.verify-models-btn:disabled{opacity:.45;cursor:not-allowed}
+.verify-progress{display:block;width:100%;height:9px;margin-top:10px;accent-color:#a28aff}
+.verify-progress[hidden],#stopVerifyBtn[hidden]{display:none!important}
+#stopVerifyBtn{display:block;color:#ffc1d0;font-size:10px;margin:0;padding-top:9px}
+.model-cost-warning{font-size:9px;line-height:1.65;color:#adb8d2;margin:9px 0 5px}

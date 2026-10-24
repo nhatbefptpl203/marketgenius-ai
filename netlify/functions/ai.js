@@ -66,7 +66,7 @@ ${JSON.stringify(userData)}
 Trả lại object JSON ngay bây giờ.`;
 }
 function validateInput(body) {
-  if (!body || !['test','generate','list-models'].includes(body.action)) return 'Hành động không hợp lệ.';
+  if (!body || !['test','generate','list-models','probe-model'].includes(body.action)) return 'Hành động không hợp lệ.';
   if (!['gemini','openai'].includes(body.provider)) return 'Nền tảng chỉ hỗ trợ Gemini và OpenAI.';
   if (typeof body.apiKey !== 'string' || body.apiKey.trim().length < 8 || body.apiKey.length > 500) return 'API Key chưa đúng định dạng hoặc chưa được nhập.';
   if (body.action !== 'list-models' && (typeof body.model !== 'string' || !/^[a-zA-Z0-9._-]{2,80}$/.test(body.model))) return 'Model không hợp lệ.';
@@ -81,9 +81,9 @@ function validateInput(body) {
   }
   return null;
 }
-async function providerRequest(url, options = {}, key) {
+async function providerRequest(url, options = {}, key, timeoutMs = 45000) {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 45000);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const response = await fetch(url, {...options, signal: controller.signal});
     const raw = await response.text();
@@ -94,7 +94,7 @@ async function providerRequest(url, options = {}, key) {
       message = String(message).replaceAll(key,'[API KEY]');
       const error = new Error(`Nhà cung cấp AI báo lỗi (${response.status}): ${message.slice(0,350)}`);
       // Preserve provider HTTP semantics so the frontend can suggest an actionable recovery.
-      error.statusCode = [400,401,403,404,408,429,500,502,503,504].includes(response.status) ? response.status : 502;
+      error.statusCode = [400,401,403,404,408,422,429,500,502,503,504].includes(response.status) ? response.status : 502;
       error.providerStatus = response.status;
       error.code = response.status === 429 ? (/quota exceeded|quota_exceeded|free_tier|daily|per.day|rpd|billing/i.test(message) ? 'quota_exceeded' : 'rate_limited') : response.status === 503 ? 'provider_busy' : response.status === 401 || response.status === 403 ? 'auth_denied' : 'provider_error';
       // Never return request headers / API key to the browser or write them to logs.
@@ -127,6 +127,56 @@ async function listProviderModels(provider,key) {
   }
   return {ok:true,models:[...new Set(names.filter(id=>isTextModel(provider,id)))].sort((a,b)=>a.localeCompare(b)).slice(0,180)};
 }
+
+// Thử chính API tạo nội dung đang được sản phẩm dùng, KHÔNG dựa riêng metadata.
+// Thành công = sử dụng được lúc kiểm tra; không phải bảo đảm quota còn về sau.
+async function probeModel(provider, model, apiKey) {
+  if (!isTextModel(provider,model)) {
+    const error=new Error('Model này không phù hợp tạo nội dung Marketing bằng văn bản.');
+    error.statusCode=400;
+    error.code='unsupported_model';
+    throw error;
+  }
+  const apiHeaders = provider === 'gemini'
+    ? {'x-goog-api-key':apiKey,'Content-Type':'application/json'}
+    : {'Authorization':`Bearer ${apiKey}`,'Content-Type':'application/json'};
+  if (provider === 'gemini') {
+    const data=await providerRequest(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,{
+      method:'POST',headers:apiHeaders,body:JSON.stringify({
+        contents:[{role:'user',parts:[{text:'Trả lời đúng JSON: {"ok":true}'}]}],
+        generationConfig:{maxOutputTokens:512,responseMimeType:'application/json',
+          responseSchema:{type:'OBJECT',properties:{ok:{type:'BOOLEAN'}},required:['ok']}}
+      })
+    },apiKey,23000);
+    const output=(data.candidates?.[0]?.content?.parts||[]).map(p=>p.text||'').join('');
+    let usable=false;
+    try { usable=JSON.parse(output).ok === true; } catch {}
+    if (!usable) {
+      const error=new Error('Model đã trả lời nhưng chưa tạo được JSON theo định dạng cần thiết.');
+      error.statusCode=422;error.code='probe_no_json';throw error;
+    }
+  } else {
+    const data=await providerRequest('https://api.openai.com/v1/responses',{
+      method:'POST',headers:apiHeaders,body:JSON.stringify({
+        model,store:false,max_output_tokens:512,
+        instructions:'Hãy trả về đúng một JSON object hợp lệ.',
+        input:'Chỉ phản hồi JSON {"ok":true}',
+        text:{format:{type:'json_object'}}
+      })
+    },apiKey,23000);
+    const output=typeof data.output_text === 'string' ? data.output_text : (data.output||[])
+      .filter(m=>m.type==='message').flatMap(m=>m.content||[])
+      .filter(c=>c.type==='output_text').map(c=>c.text||'').join('');
+    let usable=false;
+    try { usable=JSON.parse(output).ok===true && data.status!=='failed' && data.status!=='incomplete'; } catch {}
+    if (!usable) {
+      const error=new Error('Model chưa tạo được JSON bằng Responses API với thiết lập của website.');
+      error.statusCode=422;error.code='probe_no_json';throw error;
+    }
+  }
+  return {ok:true,usable:true,model};
+}
+
 async function googleGemini(action, model, apiKey, prompt) {
   const apiHeaders = {'x-goog-api-key':apiKey, 'Content-Type':'application/json'};
   if (action === 'test') {
@@ -187,7 +237,7 @@ exports.handler = async (event) => {
     if (issue) return reply(400,{ok:false,error:issue});
     const key=body.apiKey.trim();
     const prompt=body.action==='generate'?buildPrompt(body.brief):undefined;
-    const result=body.action==='list-models' ? await listProviderModels(body.provider,key) : (body.provider==='gemini' ? await googleGemini(body.action,body.model,key,prompt) : await openAI(body.action,body.model,key,prompt));
+    const result=body.action==='list-models' ? await listProviderModels(body.provider,key) : body.action==='probe-model' ? await probeModel(body.provider,body.model,key) : (body.provider==='gemini' ? await googleGemini(body.action,body.model,key,prompt) : await openAI(body.action,body.model,key,prompt));
     return reply(200,result);
   } catch (error) {
     const status=error.statusCode|| (error.name==='AbortError'?504:502);

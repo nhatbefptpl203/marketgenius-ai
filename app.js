@@ -20,6 +20,13 @@ let modelListVersion = 0;
 let modelFetchTimer = null;
 let modelListLoading = false;
 let fetchedKeySignature = '';
+// Ứng viên chưa được xác minh KHÔNG xuất hiện trong menu.
+let candidateModels = [];
+let verifiedModels = [];
+let verifyRunning = false;
+let verifyCancel = false;
+const waitForNextProbe = ms => new Promise(resolve => setTimeout(resolve, ms));
+
 
 function selectedModel() {
   return $('#model').disabled ? '' : $('#model').value;
@@ -35,11 +42,12 @@ function clearModelPicker(message = 'Nhập API Key để hiện model') {
   sel.replaceChildren(new Option(message, ''));
   sel.disabled = true;
   $('#modelCount').textContent = '0 model';
-  $('#modelHint').textContent = 'Model sẽ hiển thị khi nhà cung cấp trả về danh sách cho API Key này.';
+  $('#modelHint').textContent = 'Chỉ model đã thử tạo nội dung thành công mới xuất hiện tại đây.';
 }
 function populateModels(models) {
   const sel = $('#model');
   const ids = [...new Set(models)].filter(id => typeof id === 'string' && id);
+  const previous = sel.value;
   sel.replaceChildren();
   if (!ids.length) {
     clearModelPicker('Không có model tạo văn bản phù hợp');
@@ -47,15 +55,23 @@ function populateModels(models) {
   }
   for (const id of ids) sel.add(new Option(id, id));
   sel.disabled = false;
-  $('#modelCount').textContent = `${ids.length} model`;
-  $('#modelHint').textContent = 'Chỉ gồm model nhà cung cấp đã liệt kê cho key này. Quyền sử dụng và hạn mức cần xác thực riêng.';
+  if (ids.includes(previous)) sel.value = previous;
+  $('#modelCount').textContent = `${ids.length} đã xác minh`;
+  $('#modelHint').textContent = 'Chỉ có model gọi AI thật thành công lúc kiểm tra. Quota có thể thay đổi sau đó.';
 }
 function invalidateModels(message) {
   modelListVersion++;
   clearTimeout(modelFetchTimer);
   modelFetchTimer = null;
   modelListLoading = false;
+  verifyCancel = true;
+  verifyRunning = false;
+  candidateModels = [];
+  verifiedModels = [];
   fetchedKeySignature = '';
+  $('#verifyModelsBtn').disabled = true;
+  $('#stopVerifyBtn').hidden = true;
+  $('#verifyProgress').hidden = true;
   clearModelPicker();
   const available = $('#apiKey').value.trim().length >= 8;
   $('#loadModelsBtn').disabled = !available;
@@ -87,18 +103,21 @@ async function loadModelList() {
   $('#loadModelsBtn').disabled = true;
   $('#loadModelsBtn').querySelector('span').textContent = 'Đang lấy model…';
   $('#modelCount').textContent = 'Đang tải';
-  $('#modelListInfo').textContent = 'Đang xác thực khóa và lấy model trực tiếp từ nhà cung cấp…';
+  $('#modelListInfo').textContent = 'Đang lấy ứng viên. Chưa xác minh quyền tạo nội dung và hạn mức…';
   try {
     const data = await apiRequest({action:'list-models', provider, apiKey});
     // Nếu người dùng đổi nền tảng hoặc key khi request đang chạy, loại bỏ kết quả cũ.
     if (current !== modelListVersion || provider !== $('#provider').value || apiKey !== $('#apiKey').value.trim()) return;
     const models = Array.isArray(data.models) ? data.models : [];
-    populateModels(models);
+    candidateModels = models;
+    verifiedModels = [];
     fetchedKeySignature = `${provider}:${apiKey}`;
+    clearModelPicker(models.length ? 'Nhấn “Xác minh model” để chọn' : 'Không có model tương thích');
+    $('#verifyModelsBtn').disabled = !models.length;
     $('#modelListInfo').textContent = models.length
-      ? `Đã lấy ${models.length} model từ API Key của bạn. Chọn model và bấm “Kiểm tra kết nối” trước khi sử dụng.`
-      : 'API Key hợp lệ nhưng không tìm thấy model tạo văn bản tương thích. Kiểm tra quyền dự án hoặc thử khóa khác.';
-    notify(models.length ? `Đã tải ${models.length} model từ nhà cung cấp.` : 'Không tìm thấy model tạo văn bản phù hợp.', models.length ? 'success' : 'error');
+      ? `Tìm thấy ${models.length} model ứng viên từ ${provider === 'gemini' ? 'Gemini' : 'OpenAI'}. Chưa xác nhận dùng được. Nhấn “Xác minh model”.`
+      : 'API Key được nhận diện nhưng không tìm thấy model tạo nội dung tương thích.';
+    notify(models.length ? `Tìm thấy ${models.length} model. Hãy xác minh trước khi dùng.` : 'Không có model phù hợp.', models.length ? 'success' : 'error');
   } catch(error) {
     if (current !== modelListVersion || apiKey !== $('#apiKey').value.trim()) return;
     clearModelPicker('Không tải được model');
@@ -109,6 +128,86 @@ async function loadModelList() {
       modelListLoading = false;
       $('#loadModelsBtn').disabled = state.loading || $('#apiKey').value.trim().length < 8;
       $('#loadModelsBtn').querySelector('span').textContent = 'Tải lại model từ API Key';
+    }
+  }
+}
+
+
+// Xác minh từng model trên chính API Key của khách; KHÔNG thử đồng thời.
+// Nút dừng chỉ ngăn yêu cầu kế tiếp; lượt gọi đã bắt đầu có thể vẫn tính phí.
+function prioritizeModels(models) {
+  const rank = (id) => /flash-lite|nano|mini/i.test(id) ? 0 : /flash|gpt-4o|gpt-4\.1/i.test(id) ? 1 : /pro|gpt-5|gpt-6/i.test(id) ? 2 : 3;
+  return [...models].sort((a,b) => rank(a)-rank(b) || a.localeCompare(b));
+}
+function stopVerification() {
+  verifyCancel = true;
+  if (verifyRunning) $('#modelListInfo').textContent = 'Đang dừng sau yêu cầu hiện tại. Các model đã xác minh vẫn được giữ.';
+}
+async function verifyAvailableModels() {
+  if (verifyRunning || modelListLoading || state.loading || !candidateModels.length) return;
+  const provider = $('#provider').value;
+  const apiKey = $('#apiKey').value.trim();
+  const signature = `${provider}:${apiKey}`;
+  if (fetchedKeySignature !== signature) {
+    notify('Bạn đã đổi API Key. Hãy lấy lại danh sách model.', 'error'); return;
+  }
+  const pending = prioritizeModels(candidateModels.filter(id => !verifiedModels.includes(id)));
+  if (!pending.length) { notify('Các model ứng viên đã được xác minh.'); return; }
+  const message = `Kiểm tra ${pending.length} model bằng yêu cầu AI thật?\n\n- Áp dụng cho ${provider === 'gemini' ? 'Google Gemini' : 'OpenAI'} theo khóa của bạn.\n- Mỗi model tốn ít nhất một yêu cầu API, có thể phát sinh chi phí hoặc hết quota.\n- Có thể nhấn Dừng trong quá trình kiểm tra.`;
+  if (!window.confirm(message)) return;
+  const version = modelListVersion;
+  verifyCancel = false;
+  verifyRunning = true;
+  $('#verifyModelsBtn').disabled = true;
+  $('#loadModelsBtn').disabled = true;
+  $('#connectBtn').disabled = true;
+  $('#generateBtn').disabled = true;
+  $('#regenerateBtn').disabled = true;
+  $('#stopVerifyBtn').hidden = false;
+  $('#verifyProgress').hidden = false;
+  $('#verifyProgress').max = pending.length;
+  $('#verifyProgress').value = 0;
+  let confirmed=0, denied=0, limited=0, transient=0, checked=0, consecutive429=0;
+  try {
+    for (let i = 0; i < pending.length; i++) {
+      if (verifyCancel || version !== modelListVersion || signature !== `${$('#provider').value}:${$('#apiKey').value.trim()}`) break;
+      const model = pending[i];
+      $('#modelListInfo').textContent = `Đang xác minh ${i+1}/${pending.length}: ${model}. Đã xác minh ${verifiedModels.length} model.`;
+      try {
+        const result = await apiRequest({action:'probe-model',provider,apiKey,model});
+        if (verifyCancel || version !== modelListVersion || signature !== `${$('#provider').value}:${$('#apiKey').value.trim()}`) break;
+        if (!result.usable) throw new Error('Chưa có nội dung trả về');
+        if (!verifiedModels.includes(model)) verifiedModels.push(model);
+        populateModels(verifiedModels);
+        confirmed++;
+        consecutive429=0;
+      } catch (err) {
+        if (verifyCancel || version !== modelListVersion) break;
+        if ([400,401,402,403,404,422].includes(err.status)) { denied++; consecutive429=0; }
+        else if (err.status === 429) { limited++; consecutive429++; }
+        else { transient++; consecutive429=0; }
+      }
+      checked++;
+      $('#verifyProgress').value = checked;
+      // Tạm dừng khi quota chặn liên tiếp, không spam các model còn lại.
+      if (consecutive429 >= 3) {
+        $('#modelListInfo').textContent = 'Gặp 3 lỗi 429 liên tiếp, đã dừng sớm để tiết kiệm quota.';
+        break;
+      }
+      if (i < pending.length-1 && !verifyCancel) await waitForNextProbe(750);
+    }
+  } finally {
+    if (version === modelListVersion) {
+      verifyRunning = false;
+      $('#stopVerifyBtn').hidden = true;
+      $('#verifyProgress').hidden = true;
+      $('#verifyModelsBtn').disabled = !candidateModels.length || state.loading;
+      $('#loadModelsBtn').disabled = state.loading || $('#apiKey').value.trim().length < 8;
+      $('#connectBtn').disabled = state.loading;
+      $('#generateBtn').disabled = state.loading;
+      $('#regenerateBtn').disabled = state.loading;
+      $('#modelListInfo').textContent = `Đã kiểm tra ${checked}/${pending.length}: ${verifiedModels.length} model dùng được; ${denied} không hỗ trợ/từ chối; ${limited} giới hạn quota; ${transient} tạm lỗi. ${verifyCancel ? 'Đã dừng theo yêu cầu.' : 'Có thể xác minh lại model chưa thành công.'}`;
+      notify(verifiedModels.length ? `Có ${verifiedModels.length} model đã xác minh. Chỉ những model này được chọn.` : 'Chưa xác minh được model nào. Kiểm tra hạn mức API và thử lại sau.', verifiedModels.length?'success':'error');
     }
   }
 }
@@ -303,7 +402,8 @@ function busy(active) {
   $('#demoBtn').disabled = active;
   $('#regenerateBtn').disabled = active;
   $('#connectBtn').disabled = active;
-  $('#loadModelsBtn').disabled = active;
+  $('#loadModelsBtn').disabled = active || verifyRunning;
+  $('#verifyModelsBtn').disabled = active || verifyRunning || !candidateModels.length;
   $('#generateBtn').innerHTML = active ? `<span class="spin">${icon('rotate')}</span> AI đang lên ý tưởng...` : `${icon('sparkle')} Tạo 5 ý tưởng <svg class="icon"><use href="#i-arrow"/></svg>`;
 }
 async function apiRequest(payload) {
@@ -319,10 +419,11 @@ async function apiRequest(payload) {
   const type = response.headers.get('content-type') || '';
   if (!type.includes('application/json')) throw new Error('Chưa tìm thấy Netlify Function. Chế độ demo vẫn hoạt động khi mở index.html trực tiếp; AI thật cần chạy trên Netlify.');
   const data = await response.json();
-  if (!response.ok || !data.ok) throw new Error(data.error || `Yêu cầu API thất bại (${response.status}).`);
+  if (!response.ok || !data.ok) { const error = new Error(data.error || `Yêu cầu API thất bại (${response.status}).`); error.status = response.status; error.code = data.code; throw error; }
   return data;
 }
 async function testConnection() {
+  if (verifyRunning) { notify('Hãy dừng hoặc hoàn tất xác minh model trước.', 'error'); return; }
   const apiKey = $('#apiKey').value.trim();
   const provider = $('#provider').value;
   const model = selectedModel();
@@ -334,12 +435,12 @@ async function testConnection() {
   try {
     await apiRequest({action:'test',provider,apiKey,model});
     setApiStatus(`Đã kết nối ${provider==='gemini'?'Gemini':'OpenAI'} · ${model}`,'connected');
-    notify('API Key và model đã được nhận diện. Khi tạo chiến dịch, quota và khả năng tạo nội dung sẽ được kiểm tra thực tế.');
+    notify('Đã xác thực khóa và model. Hạn mức có thể thay đổi sau thời điểm xác minh.');
   } catch (error) { setApiStatus(error.message,'failed'); notify(error.message,'error'); }
   finally { $('#connectBtn').disabled = false; $('#connectBtn').querySelector('span').textContent = 'Kiểm tra kết nối'; }
 }
 async function generate(useDemo = false) {
-  if (state.loading) return;
+  if (state.loading || verifyRunning) return;
   if (useDemo) fillDemoBriefIfBlank();
   if (!$('#campaignForm').reportValidity()) { notify('Vui lòng nhập đủ 4 thông tin bắt buộc.','error'); return; }
   let brief;
@@ -400,7 +501,14 @@ $('#campaignForm').addEventListener('submit',event=>{event.preventDefault();gene
 $('#demoBtn').addEventListener('click',()=>generate(true));
 $('#regenerateBtn').addEventListener('click',()=>generate(state.source==='demo'));
 $('#connectBtn').addEventListener('click',testConnection);
-$('#loadModelsBtn').addEventListener('click',loadModelList);
+$('#loadModelsBtn').addEventListener('click',()=>{
+  if (verifyRunning) return;
+  candidateModels=[]; verifiedModels=[];
+  $('#verifyModelsBtn').disabled=true;
+  loadModelList();
+});
+$('#verifyModelsBtn').addEventListener('click',verifyAvailableModels);
+$('#stopVerifyBtn').addEventListener('click',stopVerification);
 $('#toggleKey').addEventListener('click',()=>{
   const input=$('#apiKey');input.type=input.type==='password'?'text':'password';
   $('#toggleKey').innerHTML=`<svg class="icon"><use href="#i-${input.type==='password'?'eye':'eyeoff'}"/></svg>`;
