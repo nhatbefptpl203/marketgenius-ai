@@ -135,3 +135,52 @@
 .page-footer .footer-heart{color:#e46b92;font-size:12px}
 .page-footer .footer-author{color:#6854d2;font-weight:800}
 @media print{.creator-signature{display:none!important}}
+
+/* v1.3.3 — Keep comparison actions clear of Netlify's bottom-right badge.
+   Repositions our own toolbar; does not hide or modify Netlify branding. */
+@media screen and (min-width: 1241px) {
+  #compareTray {
+    left: 300px;
+    right: auto;
+    bottom: 22px;
+  }
+}
+@media screen and (min-width: 991px) and (max-width: 1240px) {
+  #compareTray {
+    left: 276px;
+    right: auto;
+    bottom: 22px;
+  }
+}
+@media screen and (min-width: 681px) and (max-width: 990px) {
+  #compareTray {
+    left: 18px;
+    right: auto;
+    bottom: 22px;
+    max-width: calc(100vw - 36px);
+  }
+}
+@media screen and (max-width: 680px) {
+  #compareTray {
+    left: 12px;
+    right: 12px;
+    bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+    max-width: calc(100vw - 24px);
+    padding: 10px 12px;
+    gap: 8px;
+  }
+  #compareTray button {
+    min-width: 0;
+  }
+}
+/* Make room to scroll to the final item when the selection tray is visible. */
+@supports selector(body:has(#compareTray:not(.hidden))) {
+  body:has(#compareTray:not(.hidden)) main {
+    padding-bottom: 110px;
+  }
+  @media screen and (max-width: 680px) {
+    body:has(#compareTray:not(.hidden)) main {
+      padding-bottom: 180px;
+    }
+  }
+}
