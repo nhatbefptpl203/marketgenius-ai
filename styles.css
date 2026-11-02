@@ -117,3 +117,21 @@
 .verify-progress[hidden],#stopVerifyBtn[hidden]{display:none!important}
 #stopVerifyBtn{display:block;color:#ffc1d0;font-size:10px;margin:0;padding-top:9px}
 .model-cost-warning{font-size:9px;line-height:1.65;color:#adb8d2;margin:9px 0 5px}
+
+/* Nhất Be personal signature (presentation only; no API or state changes) */
+.creator-signature {margin-top:16px;border:1px solid rgba(163,153,255,.23);border-radius:14px;background:linear-gradient(115deg,rgba(114,92,234,.15),rgba(40,64,112,.2));overflow:hidden;transition:border-color .2s,box-shadow .2s}
+.creator-signature:hover,.creator-signature[open]{border-color:rgba(179,164,255,.58);box-shadow:0 7px 22px rgba(0,0,0,.11)}
+.creator-signature summary {list-style:none;display:flex;align-items:center;gap:10px;padding:12px 11px;cursor:pointer;outline-offset:3px}
+.creator-signature summary::-webkit-details-marker{display:none}
+.creator-monogram{flex:none;width:35px;height:35px;border-radius:11px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,#9c75fa,#657cf1);font:800 11px Inter,sans-serif;box-shadow:0 6px 17px rgba(113,90,231,.28);letter-spacing:.3px}
+.creator-identity{display:flex;min-width:0;flex:1;flex-direction:column;gap:3px}
+.creator-identity small{font:700 8px Inter,sans-serif;letter-spacing:1.15px;color:#a4afd0}
+.creator-identity small span{color:#ff9cb8}
+.sidebar-bottom .creator-identity b{font:800 13px 'Be Vietnam Pro',sans-serif;line-height:1.35;color:#fff;white-space:nowrap}
+.creator-spark{color:#c5b5ff;font-size:17px;transition:transform .2s}
+.creator-signature[open] .creator-spark{transform:rotate(45deg)}
+.sidebar-bottom .creator-about{margin:0 12px 13px;border-top:1px solid rgba(255,255,255,.10);padding-top:10px;color:#b4c0e0;font-size:10px;line-height:1.75}
+.creator-about b{color:#e4dbff}
+.page-footer .footer-heart{color:#e46b92;font-size:12px}
+.page-footer .footer-author{color:#6854d2;font-weight:800}
+@media print{.creator-signature{display:none!important}}
