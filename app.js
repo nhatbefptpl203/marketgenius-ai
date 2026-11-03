@@ -293,7 +293,10 @@ function normalizeIdeas(ideas) {
       id: newId(), number: index+1, title: text(idea.title,120), channel: text(idea.channel,100),
       concept: text(idea.concept,650), audience: text(idea.audience,250), hook: text(idea.hook,350),
       budgetSplit: text(idea.budgetSplit,350),
-      kpis: Array.isArray(idea.kpis) ? idea.kpis.slice(0,5).map(x=>text(x,170)) : [],
+      strategy: text(idea.strategy,140), rationale: text(idea.rationale,600),
+      sampleContent: text(idea.sampleContent,700), riskPlan: text(idea.riskPlan,600),
+      allocations: Array.isArray(idea.allocations) ? idea.allocations.slice(0,8).map(a=>({label:text(a.label,85),percent:Number(a.percent)})) : undefined,
+      kpis: Array.isArray(idea.kpis) ? idea.kpis.slice(0,5).map(x=>text(x,220)) : [],
       timeline: idea.timeline.map((week,i) => ({ week: i+1, task: text(typeof week === 'string' ? week : week?.task,650) }))
     };
   });
@@ -390,8 +393,15 @@ function makeDemoIdeas(brief) {
     {title:`Mini Challenge: Thử ngay ${p}`,channel:'TikTok · Cộng đồng',concept:`Thử thách nội dung do khách hàng tạo: đăng ảnh/video sử dụng ${p} kèm hashtag, chọn bài sáng tạo nhất.`,hook:'Khuyến khích cộng đồng tự tạo nội dung và lan truyền tự nhiên.',kpis:['Bài UGC hợp lệ','Lượt tiếp cận','Lượng người theo dõi mới'],timeline:['Xác định thể lệ rõ ràng, giải thưởng nhỏ và hashtag riêng.','Đăng video mở màn, mời các khách hàng đầu tiên tham gia.','Tổng hợp bài tham gia, chia sẻ bài nổi bật và duy trì thử thách.','Chọn bài đạt tiêu chí, trao quà, công bố kết quả và đo hiệu quả.']},
     {title:`Khách hàng cũ – Ưu đãi đúng lúc`,channel:'Zalo OA · Email',concept:`Chăm sóc khách hàng đã mua ${p} bằng gợi ý sử dụng, ưu đãi có thời hạn và lời mời phản hồi tự nguyện.`,hook:'Tăng doanh thu lặp lại bằng nội dung hữu ích và ưu đãi có mục tiêu.',kpis:['Tỷ lệ phản hồi','Đơn mua lại','Doanh thu mua lại'],timeline:['Phân nhóm khách đồng ý nhận tin; xây dựng nội dung chăm sóc.','Gửi hướng dẫn hữu ích và khảo sát ngắn sau mua.','Gửi ưu đãi phù hợp, tránh làm phiền hoặc nhắn quá nhiều.','Đo số đơn lặp lại, xử lý phản hồi và cải thiện chương trình.']}
   ];
+  const sampleDetails = [
+    {strategy:'Video trải nghiệm thực tế',rationale:'Dùng video để người xem nhìn thấy cách sử dụng sản phẩm. Cần thử nhiều nội dung để kiểm chứng mức độ quan tâm.',sampleContent:`${p} có phù hợp với bạn? Xem cách sử dụng và đặt câu hỏi ở bình luận nhé. Xem thêm thông tin sản phẩm tại trang của chúng tôi!`,riskPlan:'Video ít tương tác: thử lại góc quay và câu mở đầu, so sánh tỷ lệ xem hết trước khi quảng cáo.',kpis:['8 video được đăng trong 4 tuần – kiểm tra lịch đăng','10.000 lượt xem là mục tiêu thử nghiệm – đối chiếu thống kê TikTok']},
+    {strategy:'Giới thiệu bạn bè',rationale:'Đề xuất cơ chế giới thiệu để tận dụng sự tin tưởng của khách hàng hiện có; chỉ triển khai nếu có khách hàng cũ đồng ý nhận tin.',sampleContent:`Đã thử ${p}? Hãy giới thiệu cho bạn bè quan tâm; xem điều kiện chương trình và quyền lợi tại trang chính thức.`,riskPlan:'Chi phí tặng quà vượt biên lợi nhuận: giới hạn số lượt đổi quà, kiểm tra đơn hợp lệ trước khi trao.',kpis:['1 chương trình giới thiệu được công bố – kiểm tra thể lệ','30 lượt giới thiệu là mục tiêu thử nghiệm – tổng hợp mã giới thiệu']},
+    {strategy:'Kể câu chuyện thương hiệu',rationale:'Nội dung câu chuyện có thể giúp khách hiểu sản phẩm hơn mà không phụ thuộc hoàn toàn vào giảm giá; cần dùng thông tin thật.',sampleContent:`Điều gì khiến ${p} đáng để tìm hiểu? Cùng xem câu chuyện sản phẩm và đặt câu hỏi cho chúng tôi!`,riskPlan:'Thông tin sản phẩm chưa đủ chứng cứ: chỉ đăng ảnh và dữ liệu được xác nhận, không dùng đánh giá khách hàng chưa được đồng ý.',kpis:['3 bài carousel được đăng – kiểm tra lịch nội dung','20 tin nhắn tư vấn là mục tiêu thử nghiệm – thống kê hộp thư']},
+    {strategy:'Nội dung do cộng đồng tạo',rationale:'Khuyến khích người dùng tham gia sáng tạo nội dung; cần thể lệ minh bạch và quyền sử dụng ảnh/video.',sampleContent:`Bạn sáng tạo nội dung với ${p} thế nào? Đăng bài dự thi theo thể lệ trên trang và chia sẻ ý tưởng của mình!`,riskPlan:'Ít người tham gia hoặc tranh chấp bản quyền: công bố thể lệ, yêu cầu đồng ý dùng nội dung và có quà khuyến khích phù hợp.',kpis:['1 thể lệ và 1 video mở màn – kiểm tra trước khi đăng','10 bài tham gia hợp lệ là mục tiêu thử nghiệm – kiểm tra hashtag']},
+    {strategy:'Chăm sóc và mua lại',rationale:'Dùng nội dung hữu ích để giữ liên hệ với người đã mua; chỉ gửi thông tin cho khách hàng đồng ý nhận tin.',sampleContent:`Bạn đang sử dụng ${p}? Đây là một số gợi ý hữu ích dành cho bạn. Nhắn tin nếu cần hỗ trợ thêm!`,riskPlan:'Khách hàng thấy bị làm phiền: cho phép từ chối nhận tin và giới hạn tần suất gửi.',kpis:['2 thông điệp chăm sóc được gửi đúng lịch – nhật ký gửi','10 phản hồi là mục tiêu thử nghiệm – theo dõi phản hồi tự nguyện']}
+  ];
   return normalizeIdeas(templates.map((t,i)=>({
-    ...t,audience:a,budgetSplit:budget,
+    ...t,...sampleDetails[i],audience:a,budgetSplit:budget,
     timeline:t.timeline.map((task,j)=>({week:j+1,task})),
     number:i+1
   })));

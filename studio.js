@@ -81,6 +81,16 @@
     const sum = idea.allocations.reduce((a,b)=> a + Number(b.percent||0),0);
     return `<div class="table-scroll"><table class="studio-table"><thead><tr><th>Hạng mục</th><th>Tỷ trọng</th><th>Dự toán</th></tr></thead><tbody>${idea.allocations.map((a,i)=>`<tr><td>${safe(a.label)}</td><td>${a.percent}%</td><td>${safe(amountOrDash(idea,a.percent,i))}</td></tr>`).join('')}</tbody><tfoot><tr><th>Tổng</th><th>${sum}%</th><th>${idea.budgetAmount===null ? '—' : safe(currency(idea.budgetAmount))}</th></tr></tfoot></table></div><p class="studio-disclaimer">Phân bổ minh họa theo loại chiến dịch; không phải báo giá thị trường. Có thể chỉnh sửa trong “Chỉnh sửa”.</p>`;
   }
+  // Detailed output is progressive: compact cards are unchanged; useful extras
+  // appear only on demand and remain backwards-compatible with older shortlist records.
+  function extraOutput(idea) {
+    const rows = [
+      ['Vì sao phù hợp?',idea.rationale],
+      ['Nội dung quảng cáo mẫu & CTA',idea.sampleContent],
+      ['Rủi ro và phương án dự phòng',idea.riskPlan]
+    ].filter(([_,value])=>typeof value==='string'&&value.trim());
+    return rows.length ? `<div class="quality-extras">${rows.map(([heading,content])=>`<section class="quality-extra"><h4>${safe(heading)}</h4><p>${safe(content)}</p></section>`).join('')}</div>` : '';
+  }
   function timelineTable(idea, interactive = true) {
     planIdea(idea,null);
     return `<div class="table-scroll"><table class="studio-table timeline-table"><thead><tr><th>Tuần</th><th>Nhiệm vụ triển khai</th><th>Trạng thái</th></tr></thead><tbody>${idea.timeline.map((w,i)=>`<tr><td><b>Tuần ${i+1}</b></td><td>${safe(w.task)}</td><td>${interactive ? `<label class="done-week"><input type="checkbox" data-action="week-toggle" data-id="${safe(idea.id)}" data-week="${i}" ${idea.doneWeeks[i]?'checked':''}/> <span>${idea.doneWeeks[i]?'Đã xong':'Chưa xong'}</span></label>` : (idea.doneWeeks[i]?'Đã xong':'Chưa xong')}</td></tr>`).join('')}</tbody></table></div>`;
@@ -116,15 +126,17 @@
     planIdea(idea,null);
     return `<div class="detail-header"><div class="detail-header-top"><span class="idea-number">KẾ HOẠCH MARKETING · 04 TUẦN</span><button type="button" class="icon-button dialog-close" data-action="close-dialog" aria-label="Đóng">${icon('close')}</button></div><h2 class="detail-title">${safe(idea.title)}</h2><p class="detail-summary">${safe(idea.concept)}</p></div>
     <div class="detail-body"><div class="detail-info-grid"><div class="detail-info"><span>KÊNH TRIỂN KHAI</span><p>${safe(idea.channel)}</p></div><div class="detail-info"><span>KHÁCH HÀNG MỤC TIÊU</span><p>${safe(idea.audience||'Theo brief sản phẩm')}</p></div><div class="detail-info"><span>THÔNG ĐIỆP / HOOK</span><p>${safe(idea.hook||'Nội dung thu hút khách hàng mục tiêu')}</p></div><div class="detail-info"><span>NGÂN SÁCH</span><p>${idea.budgetAmount===null?'Chưa nhập mức tiền cụ thể':safe(currency(idea.budgetAmount))}</p></div></div>
+    ${idea.strategy?`<p class="quality-strategy"><strong>Hướng chiến lược:</strong> ${safe(idea.strategy)}</p>`:''}
+    ${extraOutput(idea)}
     <h4>Phân bổ ngân sách tham khảo</h4>${allocationTable(idea)}
     <h4>Timeline công việc 4 tuần</h4>${timelineTable(idea)}
-    <h4>KPI cần theo dõi</h4><div class="kpi-list">${(idea.kpis.length?idea.kpis:['Lượt tiếp cận','Tương tác','Chuyển đổi']).map(kpi=>`<span class="kpi-chip">${safe(kpi)}</span>`).join('')}</div>
+    <h4>KPI mục tiêu (đo lường, không bảo đảm kết quả)</h4><div class="kpi-list">${(idea.kpis.length?idea.kpis:['Lượt tiếp cận','Tương tác','Chuyển đổi']).map(kpi=>`<span class="kpi-chip">${safe(kpi)}</span>`).join('')}</div>
     <p class="studio-disclaimer">Tích vào từng tuần để theo dõi tiến độ. Các thay đổi lưu trên trình duyệt hiện tại.</p></div>
     <div class="detail-footer"><button type="button" class="btn btn-outline small" data-action="edit" data-id="${safe(idea.id)}">✎ Chỉnh sửa</button><button type="button" class="btn btn-outline small" data-action="pdf" data-id="${safe(idea.id)}">⇩ Xuất PDF</button><button type="button" class="btn btn-outline small" data-action="copy" data-id="${safe(idea.id)}">${icon('copy')} Sao chép</button><button type="button" class="btn btn-primary small" data-action="save" data-id="${safe(idea.id)}">${icon('bookmark')} ${state.saved.some(x=>x.id===idea.id)?'Bỏ lưu':'Lưu shortlist'}</button></div>`;
   };
   ideaToText = function(idea) {
     planIdea(idea,null);
-    return `${baseIdeaText(idea)}\n\nPHÂN BỔ NGÂN SÁCH (THAM KHẢO)\n${idea.allocations.map((a,i)=>`${a.label}: ${a.percent}%${idea.budgetAmount===null?'':` · ${amountOrDash(idea,a.percent,i)}`}`).join('\n')}\nTiến độ: ${idea.doneWeeks.filter(Boolean).length}/4 tuần`;
+    return `${baseIdeaText(idea)}\n\nHƯỚNG TIẾP CẬN: ${idea.strategy||'Theo brief'}\nVÌ SAO PHÙ HỢP: ${idea.rationale||'Chưa có dữ liệu'}\nNỘI DUNG MẪU + CTA: ${idea.sampleContent||'Chưa có dữ liệu'}\nRỦI RO / DỰ PHÒNG: ${idea.riskPlan||'Chưa có dữ liệu'}\n\nPHÂN BỔ NGÂN SÁCH (THAM KHẢO)\n${idea.allocations.map((a,i)=>`${a.label}: ${a.percent}%${idea.budgetAmount===null?'':` · ${amountOrDash(idea,a.percent,i)}`}`).join('\n')}\nTiến độ: ${idea.doneWeeks.filter(Boolean).length}/4 tuần`;
   };
 
   function recordHistory() {
@@ -208,6 +220,10 @@
       <label class="wide">Nội dung chính <textarea name="concept" maxlength="650" rows="3" required>${safe(idea.concept)}</textarea></label>
       <label>Khách hàng mục tiêu <input name="audience" maxlength="250" value="${safe(idea.audience||'')}"></label>
       <label>Thông điệp / điểm nhấn <input name="hook" maxlength="350" value="${safe(idea.hook||'')}"></label>
+      <label>Hướng chiến lược <input name="strategy" maxlength="140" value="${safe(idea.strategy||'')}"></label>
+      <label class="wide">Vì sao chiến dịch phù hợp? <textarea name="rationale" maxlength="600" rows="2">${safe(idea.rationale||'')}</textarea></label>
+      <label class="wide">Nội dung quảng cáo mẫu + CTA <textarea name="sampleContent" maxlength="700" rows="3">${safe(idea.sampleContent||'')}</textarea></label>
+      <label class="wide">Rủi ro và phương án xử lý <textarea name="riskPlan" maxlength="600" rows="2">${safe(idea.riskPlan||'')}</textarea></label>
       <label class="wide">KPI (mỗi dòng một chỉ số) <textarea name="kpis" rows="3">${safe(idea.kpis.join('\n'))}</textarea></label>
     </div><h3>Ngân sách</h3><label class="budget-input-label">Tổng ngân sách (VNĐ, có thể để trống) <input type="number" min="0" max="1000000000000" step="1" name="budgetAmount" value="${idea.budgetAmount===null?'':idea.budgetAmount}"></label>
     <div class="allocation-editor">${idea.allocations.map((a,i)=>`<div class="allocation-row"><input aria-label="Tên hạng mục ${i+1}" name="allocation-label-${i}" maxlength="85" value="${safe(a.label)}"><input aria-label="Tỷ lệ % ${i+1}" type="number" min="0" max="100" step="1" name="allocation-percent-${i}" value="${a.percent}"><span>%</span></div>`).join('')}</div><p id="allocationSum" class="studio-disclaimer"></p>
@@ -241,6 +257,10 @@
     item.concept=String(fd.get('concept')||'').trim().slice(0,650);
     item.audience=String(fd.get('audience')||'').trim().slice(0,250);
     item.hook=String(fd.get('hook')||'').trim().slice(0,350);
+    item.strategy=String(fd.get('strategy')||'').trim().slice(0,140);
+    item.rationale=String(fd.get('rationale')||'').trim().slice(0,600);
+    item.sampleContent=String(fd.get('sampleContent')||'').trim().slice(0,700);
+    item.riskPlan=String(fd.get('riskPlan')||'').trim().slice(0,600);
     item.budgetAmount=val;
     item.kpis=String(fd.get('kpis')||'').split('\n').map(s=>s.trim()).filter(Boolean).slice(0,8);
     item.allocations=item.allocations.map((a,i)=>({label:String(fd.get(`allocation-label-${i}`)||'Hoạt động').trim().slice(0,85), percent:Number(fd.get(`allocation-percent-${i}`))}));
@@ -250,7 +270,7 @@
 
   function printableIdea(idea,index) {
     planIdea(idea,null);
-    return `<section class="pdf-idea"><h2>${index+1}. ${safe(idea.title)}</h2><p><strong>Kênh:</strong> ${safe(idea.channel)}</p><p><strong>Nội dung:</strong> ${safe(idea.concept)}</p><p><strong>Khách hàng:</strong> ${safe(idea.audience)}</p><p><strong>Thông điệp:</strong> ${safe(idea.hook)}</p>
+    return `<section class="pdf-idea"><h2>${index+1}. ${safe(idea.title)}</h2><p><strong>Kênh:</strong> ${safe(idea.channel)}</p><p><strong>Nội dung:</strong> ${safe(idea.concept)}</p><p><strong>Khách hàng:</strong> ${safe(idea.audience)}</p><p><strong>Thông điệp:</strong> ${safe(idea.hook)}</p><p><strong>Hướng chiến lược:</strong> ${safe(idea.strategy||'')}</p>${extraOutput(idea)}
     <h3>Phân bổ ngân sách · ${idea.budgetAmount===null?'Chưa có ngân sách VNĐ':safe(currency(idea.budgetAmount))}</h3>${allocationTable(idea)}<h3>KPI</h3><p>${idea.kpis.map(safe).join(' · ')}</p><h3>Timeline 4 tuần</h3>${timelineTable(idea,false)}</section>`;
   }
   function exportPDF(ideas,title,includeComparison=false) {
