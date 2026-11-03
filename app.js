@@ -31,11 +31,29 @@ const waitForNextProbe = ms => new Promise(resolve => setTimeout(resolve, ms));
 function selectedModel() {
   return $('#model').disabled ? '' : $('#model').value;
 }
+const AI_PROVIDERS = Object.freeze({
+  gemini: 'Google Gemini', openai:'OpenAI', anthropic:'Claude / Anthropic',
+  deepseek:'DeepSeek',groq:'GroqCloud',mistral:'Mistral AI',openrouter:'OpenRouter'
+});
+function providerLabel(provider) { return AI_PROVIDERS[provider] || provider; }
 function setGuide(provider) {
-  $('#geminiGuide').classList.toggle('hidden', provider !== 'gemini');
-  $('#openaiGuide').classList.toggle('hidden', provider !== 'openai');
-  $('#apiGuideHeading').textContent = provider === 'gemini' ? 'Hướng dẫn lấy Gemini API Key' : 'Hướng dẫn lấy OpenAI API Key';
+  for (const name of Object.keys(AI_PROVIDERS)) {
+    const guide = document.getElementById(name + 'Guide');
+    if (guide) guide.classList.toggle('hidden', name !== provider);
+  }
+  $('#apiGuideHeading').textContent = 'Hướng dẫn lấy API Key ' + providerLabel(provider);
   $('#apiGuide').open = true;
+}
+function refreshCandidatePicker() {
+  const sel = $('#candidateModel');
+  const previous = sel.value;
+  const term = $('#candidateSearch').value.trim().toLowerCase();
+  const matches = candidateModels.filter(m => m.toLowerCase().includes(term));
+  sel.replaceChildren(new Option('Tự chọn tối đa 6 model ưu tiên', ''));
+  for (const model of matches.slice(0,80)) sel.add(new Option(model,model));
+  sel.disabled = !candidateModels.length;
+  if (matches.includes(previous) && matches.slice(0,80).includes(previous)) sel.value = previous;
+  if (!matches.length && term) sel.add(new Option('Không thấy model phù hợp', ''));
 }
 function clearModelPicker(message = 'Nhập API Key để hiện model') {
   const sel = $('#model');
@@ -68,6 +86,8 @@ function invalidateModels(message) {
   verifyRunning = false;
   candidateModels = [];
   verifiedModels = [];
+  $('#candidateSearch').value = '';
+  refreshCandidatePicker();
   fetchedKeySignature = '';
   $('#verifyModelsBtn').disabled = true;
   $('#stopVerifyBtn').hidden = true;
@@ -111,11 +131,12 @@ async function loadModelList() {
     const models = Array.isArray(data.models) ? data.models : [];
     candidateModels = models;
     verifiedModels = [];
+    refreshCandidatePicker();
     fetchedKeySignature = `${provider}:${apiKey}`;
     clearModelPicker(models.length ? 'Nhấn “Xác minh model” để chọn' : 'Không có model tương thích');
     $('#verifyModelsBtn').disabled = !models.length;
     $('#modelListInfo').textContent = models.length
-      ? `Tìm thấy ${models.length} model ứng viên từ ${provider === 'gemini' ? 'Gemini' : 'OpenAI'}. Chưa xác nhận dùng được. Nhấn “Xác minh model”.`
+      ? `Tìm thấy ${models.length} model ứng viên từ ${providerLabel(provider)}. Chưa xác nhận dùng được. Nhấn “Xác minh model”.`
       : 'API Key được nhận diện nhưng không tìm thấy model tạo nội dung tương thích.';
     notify(models.length ? `Tìm thấy ${models.length} model. Hãy xác minh trước khi dùng.` : 'Không có model phù hợp.', models.length ? 'success' : 'error');
   } catch(error) {
@@ -136,7 +157,7 @@ async function loadModelList() {
 // Xác minh từng model trên chính API Key của khách; KHÔNG thử đồng thời.
 // Nút dừng chỉ ngăn yêu cầu kế tiếp; lượt gọi đã bắt đầu có thể vẫn tính phí.
 function prioritizeModels(models) {
-  const rank = (id) => /flash-lite|nano|mini/i.test(id) ? 0 : /flash|gpt-4o|gpt-4\.1/i.test(id) ? 1 : /pro|gpt-5|gpt-6/i.test(id) ? 2 : 3;
+  const rank = (id) => /flash-lite|nano|mini|haiku|small|instant|free|8b/i.test(id) ? 0 : /flash|sonnet|llama|medium|70b/i.test(id) ? 1 : /pro|gpt-5|gpt-6|opus|large/i.test(id) ? 2 : 3;
   return [...models].sort((a,b) => rank(a)-rank(b) || a.localeCompare(b));
 }
 function stopVerification() {
@@ -151,9 +172,12 @@ async function verifyAvailableModels() {
   if (fetchedKeySignature !== signature) {
     notify('Bạn đã đổi API Key. Hãy lấy lại danh sách model.', 'error'); return;
   }
-  const pending = prioritizeModels(candidateModels.filter(id => !verifiedModels.includes(id)));
+  const selectedCandidate = $('#candidateModel').value;
+  const remaining = candidateModels.filter(id => !verifiedModels.includes(id));
+  const pending = selectedCandidate && remaining.includes(selectedCandidate)
+    ? [selectedCandidate] : prioritizeModels(remaining).slice(0,6);
   if (!pending.length) { notify('Các model ứng viên đã được xác minh.'); return; }
-  const message = `Kiểm tra ${pending.length} model bằng yêu cầu AI thật?\n\n- Áp dụng cho ${provider === 'gemini' ? 'Google Gemini' : 'OpenAI'} theo khóa của bạn.\n- Mỗi model tốn ít nhất một yêu cầu API, có thể phát sinh chi phí hoặc hết quota.\n- Có thể nhấn Dừng trong quá trình kiểm tra.`;
+  const message = `Kiểm tra ${pending.length} model bằng yêu cầu AI thật?\n\n- Áp dụng cho ${providerLabel(provider)} theo khóa của bạn.\n- Mỗi model tốn ít nhất một yêu cầu API, có thể phát sinh chi phí hoặc hết quota.\n- Có thể nhấn Dừng trong quá trình kiểm tra.`;
   if (!window.confirm(message)) return;
   const version = modelListVersion;
   verifyCancel = false;
@@ -444,7 +468,7 @@ async function testConnection() {
   setApiStatus('Đang xác thực API Key...', '');
   try {
     await apiRequest({action:'test',provider,apiKey,model});
-    setApiStatus(`Đã kết nối ${provider==='gemini'?'Gemini':'OpenAI'} · ${model}`,'connected');
+    setApiStatus(`Đã kết nối ${providerLabel(provider)} · ${model}`,'connected');
     notify('Đã xác thực khóa và model. Hạn mức có thể thay đổi sau thời điểm xác minh.');
   } catch (error) { setApiStatus(error.message,'failed'); notify(error.message,'error'); }
   finally { $('#connectBtn').disabled = false; $('#connectBtn').querySelector('span').textContent = 'Kiểm tra kết nối'; }
@@ -517,6 +541,7 @@ $('#loadModelsBtn').addEventListener('click',()=>{
   $('#verifyModelsBtn').disabled=true;
   loadModelList();
 });
+$('#candidateSearch').addEventListener('input', refreshCandidatePicker);
 $('#verifyModelsBtn').addEventListener('click',verifyAvailableModels);
 $('#stopVerifyBtn').addEventListener('click',stopVerification);
 $('#toggleKey').addEventListener('click',()=>{
