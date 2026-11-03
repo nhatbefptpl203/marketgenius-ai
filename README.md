@@ -1,135 +1,128 @@
-# MarketGenius AI — Cuộc thi Vibe Coding 2026
+# MarketGenius AI v1.3.1 — Xác minh model Gemini & OpenAI
 
-## 1. Thông tin chung
+**Nâng cấp trực tiếp từ bản v1.3**. Giữ nguyên: tạo 5 chiến dịch, timeline 4 tuần, ngân sách, chỉnh sửa, lịch sử, shortlist, so sánh và xuất PDF qua cửa sổ in.
 
-| Hạng mục | Nội dung |
-|---|---|
-| Tên sản phẩm | MarketGenius AI — Trợ lý gợi ý ý tưởng và lập kế hoạch chiến dịch Marketing |
-| Tên đội thi | Nhất Be |
-| Bảng thi | Bảng B – Kinh tế |
-| Đề bài bốc thăm | Đề số 09 — AI gợi ý ý tưởng chiến dịch Marketing |
-| Demo online | https://ph67401.netlify.app/ |
-| Mã nguồn GitHub | https://github.com/nhatbefptpl203/marketgenius-ai |
-| Video demo (≤ 02 phút) | https://youtu.be/lpPmRCChvp0 |
-| Source ZIP | https://drive.google.com/drive/folders/1Iq9A_Ag0ADJoX_9tCy1usCgqoNE3jdyO?usp=sharing |
-| Minh chứng dùng AI | https://drive.google.com/drive/folders/1a6qlcuqww7-1W7o8R0GgHDh8GZLZxIJ-?usp=sharing |
-| Bảng kiểm thử | Mục 11 của README này |
+## Model theo API Key (mới)
 
-## 2. Tính năng chính
+1. Chọn Google Gemini hoặc OpenAI, dán API Key cá nhân.
+2. Website gọi `list-models` để nhận các model ứng viên dạng văn bản. **Ứng viên chưa được đưa vào menu chọn.**
+3. Nhấn **Xác minh model dùng được**; đọc và đồng ý cảnh báo chi phí.
+4. Trình duyệt gọi Netlify Function `probe-model` tuần tự, mỗi lần với một model. Gemini thử `generateContent` và yêu cầu JSON ngắn; OpenAI thử `Responses API` với `text.format=json_object`, giống luồng tạo chiến dịch.
+5. **Chỉ model xác minh thành công** mới xuất hiện trong menu. Có tiến trình và nút dừng. Không có model định sẵn.
+6. Khi thay API Key, nhà cung cấp hoặc tải lại danh sách, model xác minh của key cũ bị xóa. Không lưu key vào localStorage.
 
-1. **Nhập thông tin chiến dịch:** Chọn ngành hàng, nhập tên sản phẩm/dịch vụ, mức ngân sách và mục tiêu chiến dịch; bổ sung khách hàng mục tiêu, ngân sách thực tế và điểm nổi bật của sản phẩm.
-2. **AI đề xuất 05 ý tưởng:** Tạo 05 chiến dịch Marketing, mỗi chiến dịch có tên, kênh triển khai và nội dung chính phù hợp với thông tin đầu vào.
-3. **Timeline triển khai 04 tuần:** Mỗi ý tưởng có kế hoạch thực hiện theo 04 tuần, hỗ trợ hiển thị theo bảng và đánh dấu tiến độ công việc.
-4. **Lưu ý tưởng vào Shortlist:** Người dùng lựa chọn và lưu các chiến dịch yêu thích.
-5. **Quản lý Shortlist:** Xem lại, xóa, sao chép nội dung và xuất kế hoạch sang PDF thông qua chức năng in của trình duyệt.
+**Giới hạn:** Yêu cầu xác minh có thể mất tiền/token hoặc quota; 429/503 có thể chỉ là tạm thời. Model qua kiểm tra tại thời điểm này vẫn có thể lỗi về sau. Kiểm tra JSON nhỏ không đảm bảo yêu cầu lớn tạo đủ 5 chiến dịch luôn thành công.
 
-Các chức năng mở rộng gồm: lịch sử tạo chiến dịch, chỉnh sửa nội dung và KPI, phân bổ ngân sách, so sánh 02–03 chiến dịch, xuất báo cáo PDF, hướng dẫn lấy API Key và xác minh model AI trước khi lựa chọn. Phiên bản 1.5 tích hợp 7 nền tảng AI và giữ cải tiến chất lượng đầu ra từ v1.4 với giải thích lý do, mẫu nội dung và CTA, phân tích rủi ro, KPI mục tiêu và ngân sách theo hoạt động.
+## Deploy
 
-## 3. Công nghệ sử dụng
+Đẩy toàn bộ nội dung thư mục `marketgenius-ai` lên nhánh `main` của repo đã nối Netlify, thay các file cũ ở gốc, giữ đúng `netlify/functions/ai.js`. Không đưa API Key lên GitHub. Netlify phải có cấu hình `netlify.toml`.
 
-| Lớp | Công nghệ |
-|---|---|
-| Giao diện | HTML5, CSS3, JavaScript thuần; thiết kế responsive |
-| Thư viện, tài nguyên giao diện | Google Fonts; biểu tượng SVG nhúng trực tiếp |
-| Lưu trữ | localStorage trên trình duyệt |
-| Tích hợp AI | Google Gemini, OpenAI, Claude (Anthropic), DeepSeek, GroqCloud, Mistral AI, OpenRouter |
-| Backend | Netlify Functions (JavaScript) |
-| Triển khai | GitHub và Netlify |
-| Xuất báo cáo | HTML/CSS dành cho in và chức năng Save as PDF của trình duyệt |
+**Các file cập nhật:** `index.html`, `app.js`, `styles.css`, `netlify/functions/ai.js`, `README.md`. Giữ nguyên `studio.js` của v1.3 (đã bao gồm trong ZIP).
 
-## 4. Tích hợp AI
+# MarketGenius AI — Campaign Studio v1.3
 
-- **Chế độ hỗ trợ:** API thật qua 7 nhà cung cấp AI (Gemini, OpenAI, Claude, DeepSeek, GroqCloud, Mistral, OpenRouter); đồng thời có chế độ DEMO sử dụng dữ liệu mô phỏng.
-- **Chế độ sử dụng trong video nộp:** để Nhất điền
-- **Model sử dụng trong video nộp:** để Nhất điền
-- **Mục đích:** Phân tích ngành hàng, sản phẩm, khách hàng mục tiêu, ngân sách và mục tiêu Marketing; đề xuất 05 chiến dịch cùng nội dung, kênh triển khai, KPI và timeline 04 tuần.
-- **Cách kết nối:** Người dùng nhập API Key của nhà cung cấp, hệ thống lấy danh sách model ứng viên của nền tảng đã chọn; người dùng có thể tìm model và xác minh bằng một yêu cầu tạo nội dung ngắn trước khi sử dụng. Mỗi lượt kiểm tra tối đa 6 model; OpenRouter có thể có hàng trăm model và không phải model nào tài khoản cũng dùng được. Website gửi yêu cầu qua Netlify Functions để kết nối API của nhà cung cấp AI.
-- **Bảo mật API Key:** API Key do người dùng nhập tại giao diện, không được ghi cố định vào mã nguồn hay lưu trong localStorage. Yêu cầu API được chuyển tiếp qua Netlify Functions.
-- **Chế độ DEMO:** Nội dung mô phỏng được phân biệt với kết quả từ API thật.
+Website dự thi **Vibe Coding 2026 — Đề 09: AI gợi ý ý tưởng chiến dịch Marketing**. Giữ nguyên năm chức năng gốc, đồng thời bổ sung khả năng quản lý, chỉnh sửa và xuất kế hoạch.
 
-## 5. Cài đặt và chạy local
-
-**Yêu cầu:** Trình duyệt web hiện đại; Netlify CLI nếu sử dụng API thật tại máy cá nhân.
-
-**Chạy chế độ DEMO:** Giải nén mã nguồn và mở `index.html` trên trình duyệt hoặc dùng máy chủ tĩnh.
-
-**Chạy với Netlify Functions:**
-
-```bash
-npm install -g netlify-cli
-netlify dev
-```
-
-Sau khi chạy, truy cập địa chỉ local do Netlify CLI cung cấp. Ứng dụng online được triển khai tại https://ph67401.netlify.app/.
-
-## 6. Cấu trúc thư mục
+## Thành phần dự án
 
 ```text
 marketgenius-ai/
-├── index.html
-├── styles.css
-├── app.js
-├── studio.js
-├── netlify.toml
+├── index.html               Giao diện chính, hướng dẫn lấy API Key
+├── styles.css               CSS responsive, bảng/biểu mẫu và bản in A4
+├── app.js                   Gemini/OpenAI, chế độ Demo, Shortlist
+├── studio.js                MỚI v1.3: lịch sử, chỉnh sửa, so sánh, PDF, xử lý lỗi
+├── netlify.toml             Cấu hình publish và đường dẫn API
 ├── netlify/
 │   └── functions/
-│       └── ai.js
+│       └── ai.js            API proxy Netlify Functions
 └── README.md
 ```
 
-## 7. Truy cập và phân quyền
+**Quan trọng:** File mới `studio.js` phải được đặt cùng cấp với `index.html` và `app.js` khi upload lên GitHub.
 
-- Website không yêu cầu tạo tài khoản hoặc đăng nhập.
-- Người dùng có thể tạo ý tưởng bằng chế độ DEMO hoặc kết nối API Key cá nhân để sử dụng AI thật.
-- Người dùng quản lý Shortlist và lịch sử tạo chiến dịch trên trình duyệt của mình.
-- Hệ thống chưa có tài khoản quản trị hoặc chức năng phân quyền nhiều người dùng.
+## Chức năng bắt buộc từ đề bài
 
-## 8. Giới hạn hiện tại
+1. Nhập **ngành hàng, tên sản phẩm, ngân sách thấp/trung bình/cao và mục tiêu chiến dịch**; thêm khách hàng mục tiêu, ngân sách VNĐ, điểm nổi bật nếu có.
+2. Gemini/OpenAI đề xuất **đúng 5 ý tưởng** gồm tên, kênh, nội dung. Có chế độ DEMO rõ ràng khi không dùng API.
+3. Mỗi ý tưởng có timeline **4 tuần riêng**.
+4. Lưu/bỏ lưu từng ý tưởng vào Shortlist.
+5. Shortlist có xem, xóa, sao chép và xuất PDF.
 
-- Shortlist và lịch sử được lưu cục bộ bằng localStorage, không tự đồng bộ giữa các thiết bị hoặc trình duyệt.
-- Chưa có hệ thống tài khoản, cơ sở dữ liệu máy chủ và tính năng cộng tác nhóm.
-- Tính năng xuất PDF thực hiện thông qua hộp thoại in của trình duyệt.
-- Chế độ DEMO sử dụng dữ liệu mô phỏng, không phải kết quả AI thật.
-- API thật phụ thuộc quyền truy cập model, hạn mức và tình trạng hoạt động của từng nhà cung cấp AI. Việc xác minh model có thể sử dụng hạn mức hoặc phát sinh chi phí API.
+## 7 nâng cấp trong bản 1.3
 
-## 9. Nguồn tham khảo
+- **Xử lý lỗi AI:** lỗi 429 có giải thích về rate limit/quota; lỗi 503 được thử lại tối đa **một lần** sau khi chờ ngắn. Có nút hủy phía trình duyệt, bảng hướng dẫn và liên kết kiểm tra giới hạn tương ứng Gemini/OpenAI. Khi hủy phía trình duyệt, tác vụ AI được gửi đến nhà cung cấp trước đó có thể vẫn chạy và phát sinh chi phí.
+- **Lịch sử:** tự lưu tối đa 18 lần tạo, mỗi lần 5 chiến dịch; xem lại, mở lại, xóa hoặc xuất PDF. Chỉ lưu trong `localStorage` của trình duyệt hiện tại, không đồng bộ thiết bị.
+- **Chỉnh sửa:** tên, kênh, nội dung, khách hàng, hook, KPI, 4 nhiệm vụ tuần, tổng ngân sách và tỷ trọng chi phí.
+- **Phân bổ ngân sách:** bảng 5 hạng mục tỷ lệ **tổng 100%**. Nếu người dùng nhập tiền VNĐ thì tự tính số tiền cho từng hạng mục; nếu không, chỉ hiển thị tỷ lệ tham khảo. Các tỷ lệ mẫu là giả định công cụ, không phải báo giá thị trường.
+- **Timeline tương tác:** xem dạng bảng, đánh dấu công việc của từng tuần đã hoàn thành; trạng thái được lưu khi chỉnh sửa chiến dịch.
+- **So sánh:** tích chọn 2–3 chiến dịch, đối chiếu kênh, mục tiêu, nội dung, ngân sách, KPI, 4 tuần và tiến độ.
+- **Xuất PDF:** tại chiến dịch, kết quả 5 chiến dịch, Shortlist, lịch sử hoặc trang so sánh; bản in A4 sử dụng font Unicode để chữ tiếng Việt hiển thị đúng.
 
-- Đề số 09 — AI gợi ý ý tưởng chiến dịch Marketing, Cuộc thi Vibe Coding 2026.
-- Google Gemini API: https://ai.google.dev/gemini-api/docs
-- OpenAI API: https://platform.openai.com/docs
-- Claude API: https://platform.claude.com/docs/en/api/overview
-- DeepSeek API: https://api-docs.deepseek.com/
-- Groq API: https://console.groq.com/docs/api-reference
-- Mistral API: https://docs.mistral.ai/api
-- OpenRouter API: https://openrouter.ai/docs
-- Netlify Functions: https://docs.netlify.com/build/functions/overview/
-- Google Fonts: https://fonts.google.com/
+### Cách xuất PDF
 
-## 10. Minh chứng dùng AI để xây dựng sản phẩm
+Nhấn **Xuất PDF** → trình duyệt mở cửa sổ In → trong mục **Destination / Máy in**, chọn **Save as PDF / Lưu dưới dạng PDF** → **Save/Lưu**. Không cần cài thư viện bên ngoài, không gửi dữ liệu đến máy chủ để xuất PDF.
 
-**Mục tiêu:** Xây dựng công cụ hỗ trợ lên ý tưởng và lập kế hoạch chiến dịch Marketing đáp ứng 05 yêu cầu của Đề số 09.
+## Dùng nhanh (không cần API)
 
-**Quá trình thực hiện:** Sử dụng AI hỗ trợ xây dựng giao diện, viết mã nguồn HTML/CSS/JavaScript và Netlify Functions; triển khai lên GitHub, Netlify; thử nghiệm chức năng kết nối API và tạo chiến dịch.
+1. Mở file `index.html` bằng Chrome hoặc Edge.
+2. Nhấn **Thử demo** để sinh 5 ý tưởng mẫu (được đánh dấu DEMO, không gọi AI).
+3. Nhấn **Chỉnh sửa**, **Xem chi tiết**, **Lưu shortlist**, **Lịch sử**, chọn **So sánh** và **Xuất PDF** để thử toàn bộ tính năng.
 
-**Vấn đề phát hiện khi thử nghiệm:** Lỗi giới hạn API (429), lỗi quá tải AI (503), tình trạng danh sách model hiển thị cả model không sử dụng được, cùng nhu cầu mở rộng chức năng quản lý chiến dịch.
+*Lưu ý:* Chức năng Demo có nội dung mẫu cố định theo ngành/sản phẩm, còn AI thật yêu cầu có Netlify Function và API Key hợp lệ.
 
-**Cải tiến:** Bổ sung xử lý lỗi API, xác minh model từ nhiều nhà cung cấp, quản lý lịch sử, chỉnh sửa chiến dịch, phân bổ ngân sách, so sánh ý tưởng và xuất PDF.
+## Dùng Gemini hoặc OpenAI thật
 
-**Ảnh hoặc liên kết minh chứng:** https://drive.google.com/drive/folders/1a6qlcuqww7-1W7o8R0GgHDh8GZLZxIJ-?usp=sharing
+1. Triển khai **cả thư mục** lên Netlify thông qua GitHub, không chỉ `index.html`.
+2. Chọn **Google Gemini** hoặc **OpenAI** trong thanh bên. Xem hướng dẫn lấy API Key có sẵn, kèm liên kết chính thức:
+   - Gemini: https://aistudio.google.com/apikey
+   - OpenAI: https://platform.openai.com/api-keys
+3. Dán **API Key cá nhân**. Website tự lấy các ID model ứng viên từ nhà cung cấp; ứng viên chưa xuất hiện trong menu chọn.
+4. Nhấn **Xác minh model dùng được**, xác nhận chi phí, đợi từng lần kiểm tra. Chỉ model kiểm tra thành công mới xuất hiện. Chọn model → nhấn **Kiểm tra kết nối** → tạo 5 ý tưởng.
+5. Model xác minh thành công **chỉ chứng minh tạo được JSON nhỏ tại thời điểm kiểm tra**; quota, quyền hay tương thích có thể thay đổi với yêu cầu thực tế. Nếu gặp lỗi, xem hướng dẫn trên website.
 
-## 11. Bảng kiểm thử
+### Giải thích lỗi phổ biến
 
-https://docs.google.com/spreadsheets/d/1iCeeIeK1ZO3ySjoWLrN2zCm3Hb5caDt-fxjwuMzIvtU/edit?usp=sharing
+- **429:** có thể bị giới hạn lượt gọi/token ngắn hạn (RPM/TPM), hết quota ngày hoặc hết hạn mức chi tiêu. Kiểm tra trang Rate Limits/Billing; website không tự spam retry 429 vì không thể biết chắc khi nào quota mở lại.
+- **503:** nhà cung cấp quá tải tạm thời. Website tự thử lại một lần trong yêu cầu tạo chiến dịch, sau đó yêu cầu người dùng chủ động thử lại hoặc đổi model.
+- **401/403:** kiểm tra key, quyền dự án và model.
+- **404/400:** tải lại model từ API Key, chọn model văn bản phù hợp.
 
-## 12. Hồ sơ bàn giao
+## Triển khai/cập nhật Netlify từ GitHub
 
-| Thành phần | Thông tin |
-|---|---|
-| Mã nguồn sản phẩm | MarketGenius AI phiên bản 1.4 |
-| Source ZIP nộp bài | để Nhất điền |
-| README | `README.md` |
-| Video demo (≤ 02 phút) | để Nhất điền |
-| Minh chứng sử dụng AI | để Nhất điền |
-| Bảng kiểm thử | Mục 11 của README này |
-| Tài khoản demo | Không yêu cầu đăng nhập |
-| Dữ liệu DEMO | Có sẵn trong website |
+1. Giải nén ZIP. Mở thư mục `marketgenius-ai`.
+2. Đảm bảo toàn bộ file trong thư mục dự án được đẩy lên repository, nhất là file mới `studio.js` và đường dẫn `netlify/functions/ai.js`.
+3. Trong GitHub, cập nhật file cũ và thêm file mới vào nhánh `main`, rồi Commit changes. Có thể dùng GitHub Desktop để đồng bộ toàn bộ thư mục dễ dàng hơn khi thay nhiều file.
+4. Netlify đang liên kết repository sẽ tự redeploy khi nhận commit mới (nếu tính năng deploy tự động đang bật).
+5. Trong Netlify, cấu hình: **Build command** trống; **Publish directory** `.`; **Functions directory** `netlify/functions` (đã thiết lập trong `netlify.toml`).
+6. Mở https://ph67401.netlify.app/ và nhấn **Ctrl + Shift + R** để lấy bản mới. Kiểm tra thanh bên có mục **Lịch sử tạo** và góc dưới có `v1.3.1`.
+
+### Chạy trên máy bằng Netlify CLI (AI thật)
+
+```bash
+npm install -g netlify-cli
+cd marketgenius-ai
+netlify dev
+```
+
+Không cần npm dependencies trong mã nguồn ứng dụng. Chế độ Demo có thể chạy bằng cách mở file HTML trực tiếp.
+
+## Quyền riêng tư
+
+- API Key chỉ lưu **trong bộ nhớ của tab** và gửi theo HTTPS tới Netlify Function rồi tới dịch vụ AI tương ứng; không lưu vào cookie hoặc `localStorage`, không ghi vào code nguồn của dự án.
+- Shortlist và lịch sử sẽ lưu **nội dung chiến dịch/brief** trong `localStorage` thiết bị hiện tại. Không sử dụng để lưu thông tin khách hàng nhạy cảm.
+- Chủ website/host vẫn có khả năng truy cập key trong request (dù mã nguồn không chủ động lưu). Chỉ nhập key vào website đáng tin cậy, nên giới hạn quyền/quota và xóa/thu hồi khi nghi ngờ rò rỉ.
+- Chế độ Demo, các thao tác chỉnh sửa và xuất PDF không tiêu tốn token AI. AI thật có thể mất phí theo model và dự án của người dùng.
+- Website chưa có tài khoản, đồng bộ dữ liệu hay hệ thống phân quyền làm việc nhóm.
+
+## Kiểm thử trước khi nộp bài
+
+- [ ] Demo tạo đủ 5 ý tưởng, mỗi ý tưởng đủ 4 tuần.
+- [ ] Chỉnh sửa nội dung và ngân sách, tỷ lệ tổng phải đúng 100%.
+- [ ] Lưu và xóa Shortlist, tải lại trình duyệt vẫn còn dữ liệu đã lưu.
+- [ ] Lịch sử có lần tạo vừa rồi và nút mở lại hoạt động.
+- [ ] So sánh 2–3 chiến dịch; trường hợp 4 chiến dịch phải bị giới hạn.
+- [ ] Xuất PDF giữ đúng tiếng Việt và định dạng bảng A4.
+- [ ] Nhập API Key thật trên Netlify: tải ứng viên, xác minh bằng yêu cầu AI ngắn, chỉ model thành công mới hiện trong menu (cần quota).
+- [ ] Giới hạn 429/503 thông báo rõ, giữ nguyên brief đã nhập.
+
+> Bản 1.3 đã được kiểm thử UI trong trình duyệt bằng dữ liệu DEMO và bằng phản hồi 429/503 mô phỏng. Đã kiểm thử bản in A4 với PDF có thể chọn và sao chép chữ tiếng Việt. Chưa thử API Key thật của người dùng.

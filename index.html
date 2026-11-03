@@ -51,7 +51,7 @@
       <section class="api-panel" id="apiPanel" aria-label="Kết nối API cá nhân">
         <div class="api-panel-head"><div class="api-symbol"><svg class="icon"><use href="#i-key"/></svg></div><div><strong>Kết nối AI của bạn</strong><small>Dùng API Key cá nhân</small></div></div>
         <label class="field-label inverse" for="provider">Nền tảng AI</label>
-        <select id="provider" class="dark-input" autocomplete="off"><option value="gemini">Google Gemini</option><option value="openai">OpenAI / GPT</option><option value="anthropic">Claude (Anthropic)</option><option value="deepseek">DeepSeek</option><option value="groq">GroqCloud</option><option value="mistral">Mistral AI</option><option value="openrouter">OpenRouter (nhiều AI)</option></select>
+        <select id="provider" class="dark-input" autocomplete="off"><option value="gemini">Google Gemini</option><option value="openai">OpenAI</option></select>
         <details class="api-guide" id="apiGuide" open>
           <summary><svg class="icon"><use href="#i-key"/></svg><span id="apiGuideHeading">Hướng dẫn lấy Gemini API Key</span><svg class="icon guide-caret"><use href="#i-chev"/></svg></summary>
           <div id="geminiGuide" class="guide-content">
@@ -62,26 +62,6 @@
             <ol><li>Nhấn <strong>Mở OpenAI API Keys</strong> và đăng nhập tài khoản OpenAI.</li><li>Chọn dự án, nhấn <strong>Create new secret key</strong> để tạo khóa.</li><li>Sao chép khóa và dán vào ô <strong>API Key</strong>. API OpenAI có thể yêu cầu thiết lập thanh toán riêng với ChatGPT.</li></ol>
             <a class="guide-link" href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer">Mở OpenAI API Keys ↗</a>
           </div>
-          <div id="anthropicGuide" class="guide-content hidden">
-            <ol><li>Đăng nhập Claude Console, mở API Keys và tạo khóa.</li><li>Sao chép API Key của Claude vào MarketGenius AI. API có hạn mức và chi phí riêng.</li></ol>
-            <a class="guide-link" href="https://platform.claude.com/settings/keys" target="_blank" rel="noopener noreferrer">Mở Claude Console ↗</a>
-          </div>
-          <div id="deepseekGuide" class="guide-content hidden">
-            <ol><li>Đăng nhập DeepSeek Platform, mở mục API Keys và tạo khóa.</li><li>Dán khóa vào đây; đảm bảo tài khoản có số dư API phù hợp.</li></ol>
-            <a class="guide-link" href="https://platform.deepseek.com/api_keys" target="_blank" rel="noopener noreferrer">Mở DeepSeek Platform ↗</a>
-          </div>
-          <div id="groqGuide" class="guide-content hidden">
-            <ol><li>Đăng nhập Groq Console và tạo API Key trong mục Keys.</li><li>Dán khóa vào đây; sử dụng model văn bản được tài khoản cho phép.</li></ol>
-            <a class="guide-link" href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer">Mở Groq Console ↗</a>
-          </div>
-          <div id="mistralGuide" class="guide-content hidden">
-            <ol><li>Đăng nhập Mistral Console, truy cập API Keys và tạo khóa.</li><li>Dán khóa vào đây; kiểm tra quyền API và hạn mức tài khoản.</li></ol>
-            <a class="guide-link" href="https://console.mistral.ai/api-keys" target="_blank" rel="noopener noreferrer">Mở Mistral Console ↗</a>
-          </div>
-          <div id="openrouterGuide" class="guide-content hidden">
-            <ol><li>Đăng nhập OpenRouter, tạo API Key trong phần Keys.</li><li>OpenRouter có rất nhiều model, mỗi model có chi phí/quota khác nhau; nên tìm và xác minh từng model trước khi dùng.</li></ol>
-            <a class="guide-link" href="https://openrouter.ai/settings/keys" target="_blank" rel="noopener noreferrer">Mở OpenRouter ↗</a>
-          </div>
           <p class="guide-security">Không chia sẻ API Key trong bình luận, ảnh chụp màn hình hoặc GitHub. Việc gọi API có thể phát sinh phí theo tài khoản của bạn.</p>
         </details>
         <label class="field-label inverse" for="apiKey">API Key</label>
@@ -90,12 +70,6 @@
         <div class="model-select-wrap"><select id="model" class="dark-input" aria-describedby="modelHint" autocomplete="off" disabled><option value="">Nhập API Key để hiện model</option></select><svg class="icon"><use href="#i-chev"/></svg></div>
         <p id="modelHint" class="model-hint">Chỉ hiển thị model đã xác minh tạo nội dung thành công bằng API Key này.</p>
         <button id="loadModelsBtn" class="fetch-models-btn" type="button"><svg class="icon"><use href="#i-rotate"/></svg><span>Tải danh sách model từ API Key</span></button>
-        <div class="candidate-picker">
-          <label class="field-label inverse" for="candidateSearch">Tìm model ứng viên (không bắt buộc)</label>
-          <input id="candidateSearch" class="dark-input" type="search" placeholder="Ví dụ: haiku, llama, free..." autocomplete="off" />
-          <select id="candidateModel" class="dark-input" aria-label="Model ứng viên cần xác minh" disabled><option value="">Tự chọn tối đa 6 model ưu tiên</option></select>
-          <p class="model-hint">Chọn riêng 1 model để thử, hoặc để mặc định để kiểm tra tối đa 6 model/lượt. Mỗi lượt thử có thể phát sinh phí.</p>
-        </div>
         <button id="verifyModelsBtn" class="verify-models-btn" type="button" disabled>✓ Xác minh model dùng được</button>
         <progress id="verifyProgress" class="verify-progress" value="0" max="100" aria-label="Tiến độ xác minh model" hidden></progress>
         <button id="stopVerifyBtn" class="text-link" type="button" hidden>Dừng xác minh sau yêu cầu hiện tại</button>

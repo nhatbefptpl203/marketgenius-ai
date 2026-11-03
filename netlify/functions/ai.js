@@ -54,202 +54,171 @@ ${JSON.stringify(userData)}
 Viết gọn, cụ thể và bằng tiếng Việt. Phản hồi JSON ngay.`;
 }
 
-const PROVIDERS = Object.freeze(['gemini','openai','anthropic','deepseek','groq','mistral','openrouter']);
-const MODEL_ID = /^[A-Za-z0-9._:/~-]{2,180}$/;
-const CHAT_APIS = Object.freeze({
-  deepseek: 'https://api.deepseek.com',
-  groq: 'https://api.groq.com/openai/v1',
-  mistral: 'https://api.mistral.ai/v1',
-  openrouter: 'https://openrouter.ai/api/v1'
-});
-const ANTHROPIC_VERSION = '2026-10-21';
-
 function validateInput(body) {
   if (!body || !['test','generate','list-models','probe-model'].includes(body.action)) return 'Hành động không hợp lệ.';
-  if (!PROVIDERS.includes(body.provider)) return 'Nhà cung cấp AI không được hỗ trợ.';
+  if (!['gemini','openai'].includes(body.provider)) return 'Nền tảng chỉ hỗ trợ Gemini và OpenAI.';
   if (typeof body.apiKey !== 'string' || body.apiKey.trim().length < 8 || body.apiKey.length > 500) return 'API Key chưa đúng định dạng hoặc chưa được nhập.';
-  if (body.action !== 'list-models' && (typeof body.model !== 'string' || !MODEL_ID.test(body.model))) return 'ID model không hợp lệ.';
+  if (body.action !== 'list-models' && (typeof body.model !== 'string' || !/^[a-zA-Z0-9._-]{2,80}$/.test(body.model))) return 'Model không hợp lệ.';
   if (body.action === 'generate') {
-    const brief = body.brief;
-    if (!brief || typeof brief !== 'object' || Array.isArray(brief)) return 'Thiếu brief chiến dịch.';
-    for (const name of ['industry','product','budget','goal']) {
-      if (typeof brief[name] !== 'string' || !brief[name].trim() || brief[name].length > 200) return `Thiếu hoặc sai trường ${name}.`;
+    const brief=body.brief;
+    if (!brief || typeof brief !== 'object') return 'Thiếu brief chiến dịch.';
+    for (const key of ['industry','product','budget','goal']) {
+      if (typeof brief[key] !== 'string' || !brief[key].trim() || brief[key].length > 200) return `Thiếu hoặc sai trường ${key}.`;
     }
     if (!['Thấp','Trung bình','Cao'].includes(brief.budget)) return 'Mức ngân sách không hợp lệ.';
-    if (brief.budgetAmount != null && (!Number.isFinite(Number(brief.budgetAmount)) || Number(brief.budgetAmount)<0 || Number(brief.budgetAmount)>1e12)) return 'Ngân sách thực tế không hợp lệ.';
+    if (brief.budgetAmount != null && (!Number.isFinite(Number(brief.budgetAmount)) || Number(brief.budgetAmount) < 0 || Number(brief.budgetAmount) > 1e12)) return 'Số tiền ngân sách không hợp lệ.';
   }
   return null;
 }
-
-async function providerRequest(url, options={}, key, timeoutMs=48000) {
-  const ctrl = new AbortController();
-  const timer = setTimeout(()=>ctrl.abort(),timeoutMs);
+async function providerRequest(url, options = {}, key, timeoutMs = 45000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const resp = await fetch(url,{...options,signal:ctrl.signal});
-    const raw = await resp.text();
+    const response = await fetch(url, {...options, signal: controller.signal});
+    const raw = await response.text();
     let data;
-    try { data=JSON.parse(raw); } catch { data={message:'Nhà cung cấp không trả về JSON hợp lệ.'}; }
-    if (!resp.ok) {
-      const upstream = data.error;
-      const detail = (typeof upstream === 'string' ? upstream : upstream?.message) || data.message || `HTTP ${resp.status}`;
-      const clean = String(detail).split(key).join('[API KEY]').slice(0,300);
-      const error = new Error(`Nhà cung cấp AI báo lỗi (${resp.status}): ${clean}`);
-      error.statusCode = [400,401,402,403,404,408,422,429,500,502,503,504].includes(resp.status) ? resp.status : 502;
-      error.providerStatus = resp.status;
-      error.code = resp.status===429 ? (/quota|free_tier|daily|billing|insufficient|credit|limit_reached/i.test(clean) ? 'quota_exceeded':'rate_limited')
-        : resp.status===503 ? 'provider_busy'
-        : [401,402,403].includes(resp.status) ? 'auth_denied' : 'provider_error';
+    try { data = JSON.parse(raw); } catch { data = {message:'Nhà cung cấp không trả về JSON.'}; }
+    if (!response.ok) {
+      let message = data.error?.message || data.message || `HTTP ${response.status}`;
+      message = String(message).replaceAll(key,'[API KEY]');
+      const error = new Error(`Nhà cung cấp AI báo lỗi (${response.status}): ${message.slice(0,350)}`);
+      // Preserve provider HTTP semantics so the frontend can suggest an actionable recovery.
+      error.statusCode = [400,401,403,404,408,422,429,500,502,503,504].includes(response.status) ? response.status : 502;
+      error.providerStatus = response.status;
+      error.code = response.status === 429 ? (/quota exceeded|quota_exceeded|free_tier|daily|per.day|rpd|billing/i.test(message) ? 'quota_exceeded' : 'rate_limited') : response.status === 503 ? 'provider_busy' : response.status === 401 || response.status === 403 ? 'auth_denied' : 'provider_error';
+      // Never return request headers / API key to the browser or write them to logs.
       throw error;
     }
     return data;
   } finally { clearTimeout(timer); }
 }
-function bearerHeaders(key) { return {'Authorization':`Bearer ${key}`,'Content-Type':'application/json'}; }
-function claudeHeaders(key) { return {'x-api-key':key,'anthropic-version':ANTHROPIC_VERSION,'Content-Type':'application/json'}; }
-function modelAllowed(provider,m) {
-  const id=typeof m==='string' ? m : String(m?.id||'');
-  if(!MODEL_ID.test(id))return false;
-  const block = /(?:embedding|embed-|moderation|speech|tts|transcrib|whisper|realtime|text-to-speech|image-generation|generate-image|ocr|rerank|audio-only|music|video-generation)/i;
-  if(block.test(id))return false;
-  if(provider==='gemini') return /^gemini-/i.test(id) && !/(?:image|audio|live|computer-use|robotics|embedding|vision-only)/i.test(id);
-  if(provider==='openai')return /^(?:gpt-[456](?:[.o-]|$)|o[1-9](?:-|$))/i.test(id) && !/(?:codex|image|audio|transcrib|search|chat-latest|vision|instruct|embedding|moderation)/i.test(id);
-  if(provider==='anthropic') return /^claude-/i.test(id) && (typeof m==='string' || m.lifecycle!=='retired');
-  if(provider==='deepseek')return /^deepseek-/i.test(id) && (typeof m==='string' || !Array.isArray(m.output_modalities) || m.output_modalities.includes('text'));
-  if(provider==='groq')return (typeof m==='string' || m.active !== false) && !/(?:guard|safeguard|playai|distil-whisper)/i.test(id);
-  if(provider==='mistral')return (typeof m==='string' || (m.archived!==true && m.capabilities?.completion_chat!==false)) && !/(?:voxtral|codestral-embed)/i.test(id);
-  if(provider==='openrouter')return /^[A-Za-z0-9._~-]+\/[A-Za-z0-9._:~-]+$/.test(id) && (typeof m==='string' || !Array.isArray(m.architecture?.output_modalities) || m.architecture.output_modalities.includes('text'));
-  return false;
+// Query the provider instead of assuming that every predefined model is accessible.
+function isTextModel(provider,model) {
+  if(!/^[a-zA-Z0-9._-]{2,80}$/.test(model))return false;
+  if(provider==='gemini')return /^gemini-(?:[234](?:\.\d+)?|flash|pro)/.test(model) && !/(?:image|audio|tts|live|embedding|transcribe|robotics|computer-use|omni|speech)/i.test(model);
+  return /^(?:gpt-[456](?:\.|-|$)|o[1-9](?:-|$))/.test(model) && !/(?:codex|image|realtime|audio|tts|transcrib|search|chat-latest|vision|instruct|embedding|moderation|preview-vision)/i.test(model);
 }
-
 async function listProviderModels(provider,key) {
-  let entries=[];
+  let names=[];
   if(provider==='gemini') {
     let token='';
-    for(let i=0;i<4;i++) {
+    for(let page=0;page<4;page++) {
       const params=new URLSearchParams({pageSize:'100'});
       if(token)params.set('pageToken',token);
       const data=await providerRequest(`https://generativelanguage.googleapis.com/v1beta/models?${params}`,{headers:{'x-goog-api-key':key}},key);
-      entries.push(...(data.models||[]).filter(m=>m.supportedGenerationMethods?.includes('generateContent')).map(m=>String(m.name||'').replace(/^models\//,'')));
+      names.push(...(data.models||[]).filter(m=>Array.isArray(m.supportedGenerationMethods)&&m.supportedGenerationMethods.includes('generateContent')).map(m=>String(m.name||'').replace(/^models\//,'')));
       token=data.nextPageToken;
       if(!token)break;
     }
-  } else if(provider==='openai') {
-    const data=await providerRequest('https://api.openai.com/v1/models',{headers:bearerHeaders(key)},key);
-    entries=data.data||[];
-  } else if(provider==='anthropic') {
-    let after='';
-    for(let i=0;i<5;i++) {
-      const p=new URLSearchParams({limit:'100'}); if(after)p.set('after_id',after);
-      const data=await providerRequest(`https://api.anthropic.com/v1/models?${p}`,{headers:claudeHeaders(key)},key);
-      entries.push(...(data.data||[]));
-      if(!data.has_more || !data.last_id)break;
-      after=data.last_id;
+  } else {
+    const data=await providerRequest('https://api.openai.com/v1/models',{headers:{Authorization:`Bearer ${key}`}},key);
+    names=(data.data||[]).map(m=>String(m.id||''));
+  }
+  return {ok:true,models:[...new Set(names.filter(id=>isTextModel(provider,id)))].sort((a,b)=>a.localeCompare(b)).slice(0,180)};
+}
+
+// Thử chính API tạo nội dung đang được sản phẩm dùng, KHÔNG dựa riêng metadata.
+// Thành công = sử dụng được lúc kiểm tra; không phải bảo đảm quota còn về sau.
+async function probeModel(provider, model, apiKey) {
+  if (!isTextModel(provider,model)) {
+    const error=new Error('Model này không phù hợp tạo nội dung Marketing bằng văn bản.');
+    error.statusCode=400;
+    error.code='unsupported_model';
+    throw error;
+  }
+  const apiHeaders = provider === 'gemini'
+    ? {'x-goog-api-key':apiKey,'Content-Type':'application/json'}
+    : {'Authorization':`Bearer ${apiKey}`,'Content-Type':'application/json'};
+  if (provider === 'gemini') {
+    const data=await providerRequest(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,{
+      method:'POST',headers:apiHeaders,body:JSON.stringify({
+        contents:[{role:'user',parts:[{text:'Trả lời đúng JSON: {"ok":true}'}]}],
+        generationConfig:{maxOutputTokens:512,responseMimeType:'application/json',
+          responseSchema:{type:'OBJECT',properties:{ok:{type:'BOOLEAN'}},required:['ok']}}
+      })
+    },apiKey,23000);
+    const output=(data.candidates?.[0]?.content?.parts||[]).map(p=>p.text||'').join('');
+    let usable=false;
+    try { usable=JSON.parse(output).ok === true; } catch {}
+    if (!usable) {
+      const error=new Error('Model đã trả lời nhưng chưa tạo được JSON theo định dạng cần thiết.');
+      error.statusCode=422;error.code='probe_no_json';throw error;
     }
   } else {
-    const url=CHAT_APIS[provider]+'/models'+(provider==='openrouter'?'?output_modalities=text':'');
-    const data=await providerRequest(url,{headers:bearerHeaders(key)},key);
-    entries=data.data||[];
-  }
-  const ids=[...new Set(entries.filter(m=>modelAllowed(provider,m)).map(m=>typeof m==='string'?m:String(m.id||'')))];
-  const sort=(a,b)=>a.localeCompare(b);
-  // OpenRouter catalog can be very large; let the visitor search then probe one model.
-  const models=ids.sort(sort).slice(0,provider==='openrouter'?1000:500);
-  return {ok:true,models,totalCandidates:ids.length,truncated:models.length<ids.length};
-}
-
-function chatText(data) {
-  const message=data.choices?.[0]?.message;
-  if (typeof message?.content==='string') return message.content.trim();
-  if (Array.isArray(message?.content))return message.content.map(x=>x?.text||'').join('').trim();
-  return '';
-}
-function claudeText(data) {
-  return (data.content||[]).filter(part=>part.type==='text').map(part=>part.text||'').join('').trim();
-}
-async function sendChat(provider,model,key,prompt,probe=false) {
-  const apiHeaders=bearerHeaders(key);
-  const payload={model,messages:[
-    {role:'system',content:probe?'Trả lời ngắn gọn bằng văn bản.':'Bạn là chuyên gia Marketing Việt Nam. Trả lời một đối tượng JSON hợp lệ, không có Markdown.'},
-    {role:'user',content:prompt}
-  ],stream:false,max_tokens:probe?256:7500};
-  if(provider==='deepseek')payload.thinking={type:'disabled'};
-  const url=CHAT_APIS[provider]+'/chat/completions';
-  const data=await providerRequest(url,{method:'POST',headers:apiHeaders,body:JSON.stringify(payload)},key,probe?24000:49000);
-  const text=chatText(data);
-  if(!text) {
-    const error=new Error('Model chưa trả nội dung văn bản. Hãy thử model khác.');
-    error.statusCode=422;error.code='empty_output';throw error;
-  }
-  return text;
-}
-async function sendClaude(model,key,prompt,probe=false) {
-  const payload={model,max_tokens:probe?256:8500,system:probe?'Trả lời ngắn gọn bằng văn bản.':'Bạn là chuyên gia Marketing. Chỉ xuất một JSON object hợp lệ, không có Markdown.',messages:[{role:'user',content:prompt}]};
-  const data=await providerRequest('https://api.anthropic.com/v1/messages',{method:'POST',headers:claudeHeaders(key),body:JSON.stringify(payload)},key,probe?24000:49000);
-  const text=claudeText(data);
-  if(!text) {
-    const error=new Error('Claude chưa tạo nội dung văn bản.');error.statusCode=422;error.code='empty_output';throw error;
-  }
-  return text;
-}
-
-async function probeModel(provider,model,key) {
-  if(!modelAllowed(provider,model)){
-    const e=new Error('Model không phù hợp với tác vụ tạo văn bản Marketing.');e.statusCode=400;e.code='unsupported_model';throw e;
-  }
-  if(provider==='gemini') {
-    const data=await providerRequest(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,{
-      method:'POST',headers:{'x-goog-api-key':key,'Content-Type':'application/json'},
-      body:JSON.stringify({contents:[{role:'user',parts:[{text:'Viết một từ tiếng Việt: OK'}]}],generationConfig:{maxOutputTokens:200}})
-    },key,24000);
-    if(!(data.candidates?.[0]?.content?.parts||[]).some(x=>typeof x.text==='string'&&x.text.trim()))throw new Error('Model chưa trả văn bản.');
-  } else if(provider==='openai') {
-    // Keep the Responses API used by v1.4 for OpenAI.
     const data=await providerRequest('https://api.openai.com/v1/responses',{
-      method:'POST',headers:bearerHeaders(key),body:JSON.stringify({model,store:false,max_output_tokens:256,input:'Trả lời một từ: OK'})
-    },key,24000);
-    const text=typeof data.output_text==='string'?data.output_text:(data.output||[]).flatMap(x=>x.content||[]).map(x=>x.text||'').join('');
-    if(!text.trim()||data.status==='incomplete'||data.status==='failed')throw new Error('Model chưa trả văn bản qua OpenAI Responses API.');
-  } else if(provider==='anthropic') {
-    await sendClaude(model,key,'Chỉ trả lời một từ: OK',true);
-  } else {
-    await sendChat(provider,model,key,'Chỉ trả lời một từ: OK',true);
+      method:'POST',headers:apiHeaders,body:JSON.stringify({
+        model,store:false,max_output_tokens:512,
+        instructions:'Hãy trả về đúng một JSON object hợp lệ.',
+        input:'Chỉ phản hồi JSON {"ok":true}',
+        text:{format:{type:'json_object'}}
+      })
+    },apiKey,23000);
+    const output=typeof data.output_text === 'string' ? data.output_text : (data.output||[])
+      .filter(m=>m.type==='message').flatMap(m=>m.content||[])
+      .filter(c=>c.type==='output_text').map(c=>c.text||'').join('');
+    let usable=false;
+    try { usable=JSON.parse(output).ok===true && data.status!=='failed' && data.status!=='incomplete'; } catch {}
+    if (!usable) {
+      const error=new Error('Model chưa tạo được JSON bằng Responses API với thiết lập của website.');
+      error.statusCode=422;error.code='probe_no_json';throw error;
+    }
   }
   return {ok:true,usable:true,model};
 }
 
-async function testModel(provider,model,key) {
-  if(!modelAllowed(provider,model))throw new Error('Model không phù hợp.');
-  if(provider==='gemini') await providerRequest(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}`,{headers:{'x-goog-api-key':key}},key);
-  else if(provider==='openai')await providerRequest(`https://api.openai.com/v1/models/${encodeURIComponent(model)}`,{headers:bearerHeaders(key)},key);
-  else if(provider==='anthropic')await providerRequest(`https://api.anthropic.com/v1/models/${encodeURIComponent(model)}`,{headers:claudeHeaders(key)},key);
-  else {
-    const models=await listProviderModels(provider,key);
-    if(!models.models.includes(model)){
-      const e=new Error('Model không nằm trong danh sách của nhà cung cấp.');e.statusCode=404;throw e;
-    }
+async function googleGemini(action, model, apiKey, prompt) {
+  const apiHeaders = {'x-goog-api-key':apiKey, 'Content-Type':'application/json'};
+  if (action === 'test') {
+    await providerRequest(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}`, {method:'GET',headers:apiHeaders}, apiKey);
+    return {ok:true};
   }
-  return {ok:true};
-}
-async function generateAI(provider,model,key,prompt) {
-  if(!modelAllowed(provider,model))throw new Error('Model không phù hợp tạo văn bản.');
-  let text='';
-  if(provider==='gemini') {
-    const data=await providerRequest(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,{
-      method:'POST',headers:{'x-goog-api-key':key,'Content-Type':'application/json'},
-      body:JSON.stringify({contents:[{role:'user',parts:[{text:prompt}]}],generationConfig:{temperature:0.7,maxOutputTokens:8192,responseMimeType:'application/json',responseSchema:schema}})
-    },key,49000);
-    text=(data.candidates?.[0]?.content?.parts||[]).map(p=>p.text||'').join('');
-  } else if(provider==='openai') {
-    const data=await providerRequest('https://api.openai.com/v1/responses',{
-      method:'POST',headers:bearerHeaders(key),body:JSON.stringify({model,store:false,max_output_tokens:12000,instructions:'Chỉ xuất JSON hợp lệ, không Markdown.',input:prompt,text:{format:{type:'json_object'}}})
-    },key,49000);
-    text=typeof data.output_text==='string'?data.output_text:(data.output||[]).flatMap(x=>x.content||[]).filter(c=>c.type==='output_text').map(x=>x.text||'').join('');
-  } else if(provider==='anthropic')text=await sendClaude(model,key,prompt,false);
-  else text=await sendChat(provider,model,key,prompt,false);
-  if(!text) throw new Error('Model chưa tạo được nội dung. Hãy thử lại hoặc đổi model.');
+  const data = await providerRequest(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
+    method:'POST',headers:apiHeaders,
+    body:JSON.stringify({
+      contents:[{role:'user',parts:[{text:prompt}]}],
+      generationConfig:{temperature:0.7,maxOutputTokens:8192,responseMimeType:'application/json',responseSchema:schema}
+    })
+  },apiKey);
+  const text=(data.candidates?.[0]?.content?.parts||[]).map(p=>p.text||'').join('');
+  if (!text) throw new Error('Gemini chưa tạo được nội dung. Hãy thử lại hoặc đổi model.');
   return parseCampaigns(text);
 }
-
+async function openAI(action,model,apiKey,prompt) {
+  const apiHeaders = {'Authorization':`Bearer ${apiKey}`,'Content-Type':'application/json'};
+  if (action==='test') {
+    await providerRequest(`https://api.openai.com/v1/models/${encodeURIComponent(model)}`,{method:'GET',headers:apiHeaders},apiKey);
+    return {ok:true};
+  }
+  // Responses API hỗ trợ các dòng model văn bản hiện đại rộng hơn Chat Completions.
+  const data=await providerRequest('https://api.openai.com/v1/responses',{
+    method:'POST',headers:apiHeaders,body:JSON.stringify({
+      model,store:false,max_output_tokens:12000,
+      instructions:'Bạn là chuyên gia tư vấn Marketing. Chỉ xuất một JSON object hợp lệ, không có Markdown.',
+      input:prompt,
+      text:{format:{type:'json_object'}}
+    })
+  },apiKey);
+  const content=typeof data.output_text==='string' ? data.output_text : (data.output||[])
+    .filter(item=>item.type==='message').flatMap(item=>item.content||[])
+    .filter(part=>part.type==='output_text').map(part=>part.text||'').join('');
+  if (!content) throw new Error('OpenAI chưa tạo được nội dung. Hãy thử lại hoặc đổi model.');
+  return parseCampaigns(content);
+}
+// Normalize only monetary shares, never invent prices or promise outcomes.
+function normalizeAllocations(allocations) {
+  if (!Array.isArray(allocations) || allocations.length < 2 || allocations.length > 8) return null;
+  const clean=allocations.map(a=>({label:String(a?.label||'').trim().slice(0,85),percent:Number(a?.percent)}));
+  if (clean.some(a=>!a.label || !Number.isFinite(a.percent) || a.percent<0 || a.percent>100)) return null;
+  const sum=clean.reduce((total,a)=>total+a.percent,0);
+  if (sum<=0) return null;
+  // Scale to integer percentages, allocating rounding remainders deterministically.
+  const exact=clean.map(a=>a.percent/sum*100);
+  const ints=exact.map(Math.floor);
+  let missing=100-ints.reduce((a,b)=>a+b,0);
+  const order=exact.map((n,i)=>({i,frac:n-ints[i]})).sort((a,b)=>b.frac-a.frac||a.i-b.i);
+  for (let i=0;i<missing;i++) ints[order[i % order.length].i]++;
+  return clean.map((a,i)=>({...a,percent:ints[i]}));
+}
 // Normalize only monetary shares, never invent prices or promise outcomes.
 function normalizeAllocations(allocations) {
   if (!Array.isArray(allocations) || allocations.length < 2 || allocations.length > 8) return null;
@@ -303,13 +272,7 @@ exports.handler = async (event) => {
     if (issue) return reply(400,{ok:false,error:issue});
     const key=body.apiKey.trim();
     const prompt=body.action==='generate'?buildPrompt(body.brief):undefined;
-    const result=body.action==='list-models'
-      ? await listProviderModels(body.provider,key)
-      : body.action==='probe-model'
-        ? await probeModel(body.provider,body.model,key)
-        : body.action==='test'
-          ? await testModel(body.provider,body.model,key)
-          : await generateAI(body.provider,body.model,key,prompt);
+    const result=body.action==='list-models' ? await listProviderModels(body.provider,key) : body.action==='probe-model' ? await probeModel(body.provider,body.model,key) : (body.provider==='gemini' ? await googleGemini(body.action,body.model,key,prompt) : await openAI(body.action,body.model,key,prompt));
     return reply(200,result);
   } catch (error) {
     const status=error.statusCode|| (error.name==='AbortError'?504:502);
