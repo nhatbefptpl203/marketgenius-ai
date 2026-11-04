@@ -27,6 +27,67 @@ let verifyRunning = false;
 let verifyCancel = false;
 const waitForNextProbe = ms => new Promise(resolve => setTimeout(resolve, ms));
 
+// Hai chế độ: API do người dùng nhập hoặc Gemini do chủ site cấu hình qua Netlify.
+// Không bao giờ lưu khóa của chủ site vào HTML, JS hoặc localStorage.
+let guestReady = false;
+let guestModel = '';
+let guestSiteKey = '';
+let guestToken = '';
+let guestWidgetId = null;
+function getAiMode(){ return document.querySelector('input[name="aiMode"]:checked')?.value || 'guest'; }
+function setGuestStatus(message, kind=''){
+  const node=$('#guestStatus'); node.textContent=message;
+  node.className=`guest-status ${kind==='ready'?'is-ready':kind==='error'?'is-error':''}`;
+}
+function refreshAiMode(){
+  const guest=getAiMode()==='guest';
+  $('#guestAiSettings').classList.toggle('hidden',!guest);
+  $('#personalAiSettings').classList.toggle('hidden',guest);
+  $('#aiFormNotice').textContent=guest
+    ? 'AI có sẵn: tạo ý tưởng thật không cần API Key. Bạn cũng có thể thử dữ liệu Demo.'
+    : 'AI cá nhân: nhập API Key, xác minh model rồi tạo chiến dịch. Demo vẫn miễn phí.';
+  $('#generateBtn').disabled=state.loading || (guest && !guestReady);
+  $('#modeBadge').classList.toggle('is-connected',guest ? guestReady : state.connected);
+  $('#modeBadge').innerHTML=`<span class="tiny-pulse"></span>${guest ? (guestReady?'AI có sẵn sàng':'AI có sẵn chưa cấu hình') : (state.connected?'AI đã kết nối':'Demo sẵn sàng')}`;
+}
+async function initGuestTurnstile(tries=0){
+  if(!guestReady || !guestSiteKey || guestWidgetId!==null) return;
+  if(!window.turnstile){
+    if(tries>=40){setGuestStatus('Không tải được bước xác minh. Hãy kiểm tra kết nối hoặc dùng AI cá nhân.','error');return;}
+    setTimeout(()=>initGuestTurnstile(tries+1),250);return;
+  }
+  try {
+    guestWidgetId=window.turnstile.render('#guestTurnstile',{
+      sitekey:guestSiteKey,theme:'dark',size:'flexible',action:'guest_generate',
+      callback:(token)=>{guestToken=token;setGuestStatus('Đã xác minh. Bạn có thể tạo 5 chiến dịch bằng AI có sẵn.','ready');},
+      'expired-callback':()=>{guestToken='';setGuestStatus('Phiên xác minh đã hết hạn. Hãy xác minh lại để tiếp tục.');},
+      'error-callback':()=>{guestToken='';setGuestStatus('Không thể xác minh. Thử tải lại trang hoặc dùng AI cá nhân.','error');}
+    });
+  } catch {setGuestStatus('Không thể khởi tạo xác minh Turnstile.','error');}
+}
+function resetGuestChallenge(){
+  guestToken='';
+  if(guestWidgetId!==null && window.turnstile)try{window.turnstile.reset(guestWidgetId);}catch{}
+  if(guestReady)setGuestStatus('Vui lòng xác minh lại trước lượt tạo ý tưởng tiếp theo.');
+}
+async function loadGuestConfiguration(){
+  try {
+    const response=await fetch('/api/ai',{method:'GET',cache:'no-store'});
+    if(!(response.headers.get('content-type')||'').includes('application/json'))throw Error('Không thấy cấu hình từ Netlify Functions.');
+    const data=await response.json();
+    guestReady=Boolean(data.ok && data.guestAvailable && data.turnstileSiteKey);
+    guestModel=guestReady?String(data.guestModel||''):'';
+    guestSiteKey=guestReady?String(data.turnstileSiteKey||''):'';
+    setGuestStatus(guestReady?`Đã có Gemini (${guestModel}). Xác minh một lần để tạo ý tưởng thật.`:'AI có sẵn chưa được chủ website bật trên Netlify. Bạn có thể dùng API cá nhân hoặc thử Demo.',guestReady?'ready':'error');
+    if(guestReady)initGuestTurnstile();
+  } catch {
+    guestReady=false;
+    setGuestStatus('Không lấy được cấu hình AI có sẵn. Thử lại sau hoặc chọn AI cá nhân.','error');
+  }
+  refreshAiMode();
+}
+
+
 
 function selectedModel() {
   return $('#model').disabled ? '' : $('#model').value;
@@ -239,8 +300,7 @@ function setApiStatus(message, type = '') {
   el.className = `api-status ${type}`;
   el.querySelector('span:last-child').textContent = message;
   state.connected = type === 'connected';
-  $('#modeBadge').classList.toggle('is-connected', state.connected);
-  $('#modeBadge').innerHTML = `<span class="tiny-pulse"></span>${state.connected ? 'AI đã kết nối' : 'Demo sẵn sàng'}`;
+  if (getAiMode()==='personal') refreshAiMode();
 }
 function resetConnection() { setApiStatus('Chưa kiểm tra kết nối', ''); }
 function changeView(view) {
@@ -327,7 +387,7 @@ function renderResults() {
   $('#ideasGrid').innerHTML = state.ideas.map(idea => renderCard(idea)).join('');
   $('#resultsSubtitle').textContent = formatBrief(state.brief);
   const label = $('#sourceTag');
-  label.textContent = state.source === 'demo' ? 'DỮ LIỆU DEMO' : `AI THẬT · ${$('#provider').value.toUpperCase()}`;
+  label.textContent = state.source === 'demo' ? 'DỮ LIỆU DEMO' : state.source==='guest' ? 'AI CÓ SẴN · GEMINI' : `AI THẬT · ${$('#provider').value.toUpperCase()}`;
   label.classList.toggle('demo',state.source==='demo');
   setTimeout(()=>section.scrollIntoView({behavior:'smooth',block:'start'}),80);
 }
@@ -417,6 +477,8 @@ function busy(active) {
   $('#loadModelsBtn').disabled = active || verifyRunning;
   $('#verifyModelsBtn').disabled = active || verifyRunning || !candidateModels.length;
   $('#generateBtn').innerHTML = active ? `<span class="spin">${icon('rotate')}</span> AI đang lên ý tưởng...` : `${icon('sparkle')} Tạo 5 ý tưởng <svg class="icon"><use href="#i-arrow"/></svg>`;
+  document.querySelectorAll('input[name=aiMode]').forEach(input=>{input.disabled=active;});
+  if(!active)refreshAiMode();
 }
 async function apiRequest(payload) {
   let response;
@@ -457,13 +519,17 @@ async function generate(useDemo = false) {
   if (!$('#campaignForm').reportValidity()) { notify('Vui lòng nhập đủ 4 thông tin bắt buộc.','error'); return; }
   let brief;
   try { brief = readBrief(); } catch(error) {notify(error.message,'error');return;}
-  if (!useDemo && !$('#apiKey').value.trim()) {
+  if (!useDemo && getAiMode()==='guest') {
+    if (!guestReady) {notify('AI có sẵn chưa được cấu hình trên Netlify. Bạn có thể chọn AI cá nhân hoặc Demo.','error');return;}
+    if (!guestToken) {notify('Hãy hoàn thành xác minh bảo vệ ở mục AI có sẵn trước khi tạo.','error');if(window.innerWidth<=990)openMobileMenu();return;}
+  }
+  if (!useDemo && getAiMode()==='personal' && !$('#apiKey').value.trim()) {
     notify('Để tạo bằng AI thật, hãy nhập API Key. Hoặc nhấn “Thử demo”.','error');
     $('#apiKey').focus();
     if (window.innerWidth <= 990) openMobileMenu();
     return;
   }
-  if (!useDemo && (!selectedModel() || fetchedKeySignature !== `${$('#provider').value}:${$('#apiKey').value.trim()}`)) {
+  if (!useDemo && getAiMode()==='personal' && (!selectedModel() || fetchedKeySignature !== `${$('#provider').value}:${$('#apiKey').value.trim()}`)) {
     notify('Hãy tải model theo API Key và chọn model trước khi tạo bằng AI thật.', 'error');
     return;
   }
@@ -479,18 +545,21 @@ async function generate(useDemo = false) {
       await new Promise(resolve => setTimeout(resolve,450));
       ideas = makeDemoIdeas(brief);
     } else {
-      const data = await apiRequest({ action:'generate', provider:$('#provider').value,
-        apiKey:$('#apiKey').value.trim(),model:selectedModel(),brief });
-      ideas = normalizeIdeas(data.ideas);
-      setApiStatus(`Đã kết nối ${$('#provider').value} · ${selectedModel()}`,'connected');
+      const guest=getAiMode()==='guest';
+      const data = await apiRequest(guest
+        ? {action:'guest-generate',brief,turnstileToken:guestToken}
+        : {action:'generate',provider:$('#provider').value,apiKey:$('#apiKey').value.trim(),model:selectedModel(),brief});
+      ideas=normalizeIdeas(data.ideas);
+      if (guest) setGuestStatus('AI có sẵn đã tạo thành công.','ready');
+      else setApiStatus(`Đã kết nối ${$('#provider').value} · ${selectedModel()}`,'connected');
     }
-    state.ideas = ideas;state.source=useDemo?'demo':'ai';renderResults();
+    state.ideas = ideas;state.source=useDemo?'demo':getAiMode()==='guest'?'guest':'ai';renderResults();
     notify(useDemo?'Đã tạo 5 chiến dịch DEMO (không gọi AI).':'AI đã tạo thành công 5 chiến dịch!');
   } catch(error) {
     if (state.ideas.length) renderResults();
     else $('#resultsSection').classList.add('hidden');
     notify(error.message||'Đã xảy ra lỗi khi tạo ý tưởng.','error');
-  } finally { busy(false); }
+  } finally { if(!useDemo && getAiMode()==='guest')resetGuestChallenge(); busy(false); }
 }
 
 document.addEventListener('click',async (event)=>{
@@ -515,6 +584,7 @@ $('#campaignForm').addEventListener('submit',event=>{event.preventDefault();gene
 $('#demoBtn').addEventListener('click',()=>generate(true));
 $('#regenerateBtn').addEventListener('click',()=>generate(state.source==='demo'));
 $('#connectBtn').addEventListener('click',testConnection);
+document.querySelectorAll('input[name=aiMode]').forEach(radio=>radio.addEventListener('change',refreshAiMode));
 $('#loadModelsBtn').addEventListener('click',()=>{
   if (verifyRunning) return;
   candidateModels=[]; verifiedModels=[];
@@ -551,6 +621,8 @@ $('#copyAllBtn').addEventListener('click',()=>{
 });
 $('#detailsDialog').addEventListener('click',event=>{if(event.target===$('#detailsDialog'))$('#detailsDialog').close();});
 setGuide('gemini');
+refreshAiMode();
+loadGuestConfiguration();
 clearModelPicker();
 $('#loadModelsBtn').disabled = true;
 updateCounters();renderShortlist();

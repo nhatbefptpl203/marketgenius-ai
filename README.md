@@ -5,7 +5,7 @@
 | Hạng mục | Nội dung |
 |---|---|
 | Tên sản phẩm | MarketGenius AI — Trợ lý gợi ý ý tưởng và lập kế hoạch chiến dịch Marketing |
-| Phiên bản | 1.4.1 — Smart Campaign Planner |
+| Phiên bản | 1.4.2 — Smart Campaign Planner và hai chế độ sử dụng AI |
 | Tên đội thi | Nhất Be |
 | Bảng thi | Bảng B – Kinh tế |
 | Đề bài bốc thăm | Đề số 09 — AI gợi ý ý tưởng chiến dịch Marketing |
@@ -24,7 +24,7 @@
 4. **Lưu ý tưởng vào Shortlist:** Người dùng lựa chọn và lưu các chiến dịch yêu thích.
 5. **Quản lý Shortlist:** Xem lại, xóa, sao chép nội dung và xuất kế hoạch sang PDF thông qua chức năng in của trình duyệt.
 
-Các chức năng mở rộng gồm: lịch sử tạo chiến dịch, chỉnh sửa nội dung và KPI, phân bổ ngân sách, so sánh 02–03 chiến dịch, xuất báo cáo PDF, hướng dẫn lấy API Key và xác minh model AI trước khi lựa chọn. **Smart Campaign Planner** cho phép chọn các chiến dịch trong Shortlist, tổng hợp công việc theo 04 tuần, theo dõi tiến độ, lọc theo mức ngân sách của brief, sao chép Text/Markdown và mở Zalo/Telegram để chia sẻ. Giao diện so sánh trên điện thoại được tối ưu thành các thẻ dọc.
+Các chức năng mở rộng gồm: lịch sử tạo chiến dịch, chỉnh sửa nội dung và KPI, phân bổ ngân sách, so sánh 02–03 chiến dịch, xuất báo cáo PDF, hướng dẫn lấy API Key và xác minh model AI trước khi lựa chọn. **Smart Campaign Planner** cho phép chọn các chiến dịch trong Shortlist, tổng hợp công việc theo 04 tuần, theo dõi tiến độ, lọc theo mức ngân sách của brief, sao chép Text/Markdown và mở Zalo/Telegram để chia sẻ. Giao diện so sánh trên điện thoại được tối ưu thành các thẻ dọc. Người dùng chọn **AI có sẵn** hoặc **AI cá nhân**; AI có sẵn yêu cầu xác minh chống bot và không cung cấp khóa của chủ website cho người truy cập.
 
 ## 3. Công nghệ sử dụng
 
@@ -40,7 +40,7 @@ Các chức năng mở rộng gồm: lịch sử tạo chiến dịch, chỉnh s
 
 ## 4. Tích hợp AI
 
-- **Chế độ hỗ trợ:** API thật qua Google Gemini hoặc OpenAI; đồng thời có chế độ DEMO sử dụng dữ liệu mô phỏng.
+- **Chế độ hỗ trợ:** AI có sẵn của website (Gemini do chủ website cấu hình); AI cá nhân (Gemini hoặc OpenAI bằng API Key của người dùng); và DEMO sử dụng dữ liệu mô phỏng được gắn nhãn rõ ràng.
 - **Chế độ sử dụng trong video nộp:** để Nhất điền
 - **Model sử dụng trong video nộp:** để Nhất điền
 - **Mục đích:** Phân tích ngành hàng, sản phẩm, khách hàng mục tiêu, ngân sách và mục tiêu Marketing; đề xuất 05 chiến dịch cùng nội dung, kênh triển khai, KPI và timeline 04 tuần.

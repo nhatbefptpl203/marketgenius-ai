@@ -141,7 +141,8 @@
 
   function recordHistory() {
     const item={id:newId(),createdAt:new Date().toISOString(),brief:clone(state.brief),source:state.source,
-      provider:state.source==='ai'?el('provider').value:null,model:state.source==='ai'?selectedModel():null,ideas:clone(state.ideas)};
+      provider:state.source==='guest'?'gemini (AI có sẵn)':state.source==='ai'?el('provider').value:null,
+      model:state.source==='guest'?guestModel:state.source==='ai'?selectedModel():null,ideas:clone(state.ideas)};
     studio.history.unshift(item);
     studio.history = studio.history.slice(0,MAX_HISTORY);
     saveHistory();renderHistory();
@@ -166,7 +167,7 @@
     el('historyList').innerHTML = studio.history.map((entry,i)=>`<article class="history-item">
       <div class="history-number">${String(i+1).padStart(2,'0')}</div>
       <div class="history-info"><strong>${safe(entry.brief.product||'Chiến dịch chưa có tên')}</strong><p>${safe(entry.brief.industry||'')} · ${safe(entry.brief.goal||'')} · ${safe(dateTime(entry.createdAt))}</p>
-       <span class="history-source">${entry.source==='demo'?'Bản mẫu DEMO':`AI thật · ${safe(entry.provider||'')}`}</span></div>
+       <span class="history-source">${entry.source==='demo'?'Bản mẫu DEMO':entry.source==='guest'?'AI có sẵn · Gemini':`AI thật · ${safe(entry.provider||'')}`}</span></div>
       <div class="history-actions"><button type="button" data-history-action="restore" data-id="${safe(entry.id)}">Mở lại</button><button type="button" data-history-action="export" data-id="${safe(entry.id)}">PDF</button><button type="button" class="danger" data-history-action="delete" data-id="${safe(entry.id)}">Xóa</button></div>
     </article>`).join('');
   }
@@ -312,7 +313,10 @@
       state.brief=clone(entry.brief);state.ideas=clone(entry.ideas);state.source=entry.source;
       for(const name of ['industry','product','budget','goal','audience','usp'])if(el(name))el(name).value=entry.brief[name]||'';
       el('budgetAmount').value=entry.brief.budgetAmount??'';
-      studio.comparing.clear();changeView('create');baseResult();if(entry.source==='ai'&&entry.provider){el('sourceTag').textContent=`AI THẬT · ${entry.provider.toUpperCase()}`;}notifyInfo('Đã mở lại 5 chiến dịch từ lịch sử.');
+      studio.comparing.clear();changeView('create');baseResult();
+      if(entry.source==='guest')el('sourceTag').textContent='AI CÓ SẴN · GEMINI';
+      else if(entry.source==='ai'&&entry.provider)el('sourceTag').textContent=`AI THẬT · ${entry.provider.toUpperCase()}`;
+      notifyInfo('Đã mở lại 5 chiến dịch từ lịch sử.');
     } else if(btn.dataset.historyAction==='export') exportPDF(entry.ideas,`Lịch sử chiến dịch - ${entry.brief.product}`);
     else if(btn.dataset.historyAction==='delete') {
       if(!window.confirm('Xóa lần tạo này khỏi lịch sử? Shortlist không bị ảnh hưởng.'))return;

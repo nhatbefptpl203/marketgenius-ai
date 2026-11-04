@@ -1,7 +1,8 @@
 'use strict';
 
-// MarketGenius AI proxy — no API key is stored on the server.
-// Each request is sent to the provider over HTTPS using the key supplied by the visitor.
+// MarketGenius AI proxy — personal keys come from visitors. A separate optional
+// site-owned Gemini key is read ONLY from Netlify Functions environment variables.
+// Never embed any secret key in frontend assets, git or Netlify TOML.
 
 const headers = {
   'Content-Type': 'application/json; charset=utf-8',
@@ -263,11 +264,50 @@ function parseCampaigns(text) {
   return {ok:true,ideas:data.ideas};
 }
 
+// Guest mode is OFF unless both a site-owned key and Cloudflare Turnstile keys
+// have been configured. Captcha is not a substitute for provider spending limits.
+function guestSettings(){
+  const key=String(process.env.GUEST_GEMINI_API_KEY||'').trim();
+  const model=String(process.env.GUEST_GEMINI_MODEL||'').trim();
+  const siteKey=String(process.env.TURNSTILE_SITE_KEY||'').trim();
+  const secret=String(process.env.TURNSTILE_SECRET_KEY||'').trim();
+  return {key,model,siteKey,secret,available: Boolean(key.length>=8 && isTextModel('gemini',model) && siteKey && secret)};
+}
+async function verifyGuestTurnstile(event,token,secret){
+  if(typeof token!=='string'||token.length<20||token.length>2048)return false;
+  const form=new URLSearchParams({secret,response:token});
+  const resp=await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify',{
+    method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:form
+  });
+  if(!resp.ok)return false;
+  const result=await resp.json();
+  const host=String(event.headers?.host||event.headers?.Host||'').split(':')[0].trim().toLowerCase();
+  // Turnstile uses the actual site hostname; reject tokens from other websites.
+  return result.success===true && result.action==='guest_generate' && host && String(result.hostname||'').toLowerCase()===host;
+}
 exports.handler = async (event) => {
-  if (event.httpMethod !== 'POST') return reply(405,{ok:false,error:'Chỉ chấp nhận phương thức POST.'});
+  if(event.httpMethod==='GET'){
+    const cfg=guestSettings();
+    return reply(200,{ok:true,guestAvailable:cfg.available,
+      guestModel:cfg.available?cfg.model:null,
+      turnstileSiteKey:cfg.available?cfg.siteKey:null});
+  }
+  if (event.httpMethod !== 'POST') return reply(405,{ok:false,error:'Chỉ chấp nhận GET hoặc POST.'});
   if ((event.body||'').length > 20000) return reply(413,{ok:false,error:'Dữ liệu gửi lên quá dài.'});
   try {
     const body=JSON.parse(event.body || '{}');
+    if(body.action==='guest-generate'){
+      const cfg=guestSettings();
+      if(!cfg.available)return reply(503,{ok:false,code:'guest_unavailable',error:'AI có sẵn chưa được cấu hình đầy đủ trên Netlify.'});
+      const issue=validateInput({action:'generate',provider:'gemini',apiKey:cfg.key,model:cfg.model,brief:body.brief});
+      if(issue)return reply(400,{ok:false,error:issue});
+      let verified=false;
+      try{verified=await verifyGuestTurnstile(event,body.turnstileToken,cfg.secret);}catch{}
+      if(!verified)return reply(403,{ok:false,code:'turnstile_invalid',error:'Xác minh bảo vệ không hợp lệ hoặc đã hết hạn. Vui lòng xác minh lại.'});
+      const prompt=buildPrompt(body.brief);
+      // Model is pinned server-side. Visitors cannot change it or list models.
+      return reply(200,await googleGemini('generate',cfg.model,cfg.key,prompt));
+    }
     const issue=validateInput(body);
     if (issue) return reply(400,{ok:false,error:issue});
     const key=body.apiKey.trim();

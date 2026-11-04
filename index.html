@@ -48,7 +48,19 @@
         <button class="nav-item" type="button" data-view="history"><svg class="icon"><use href="#i-clock"/></svg> Lịch sử tạo <span class="nav-dot"></span></button>
       </nav>
       <div class="sidebar-section-label tools-label">TRỢ LÝ AI</div>
-      <section class="api-panel" id="apiPanel" aria-label="Kết nối API cá nhân">
+      <section class="api-panel" id="apiPanel" aria-label="Lựa chọn sử dụng AI">
+        <div class="mode-choice-title">CHỌN CÁCH SỬ DỤNG AI</div>
+        <div class="ai-mode-switch" role="radiogroup" aria-label="Chế độ sử dụng AI">
+          <label class="ai-mode-option"><input type="radio" name="aiMode" value="guest" checked><span><strong>✦ AI có sẵn</strong><small>Không cần nhập API Key</small></span></label>
+          <label class="ai-mode-option"><input type="radio" name="aiMode" value="personal"><span><strong>🔑 AI cá nhân</strong><small>Dùng Gemini hoặc OpenAI của bạn</small></span></label>
+        </div>
+        <div id="guestAiSettings" class="ai-mode-panel" aria-label="AI có sẵn">
+          <div class="api-panel-head"><div class="api-symbol"><svg class="icon"><use href="#i-sparkle"/></svg></div><div><strong>AI do Nhất Be cung cấp</strong><small>Google Gemini · Tạo chiến dịch thật</small></div></div>
+          <p id="guestStatus" class="guest-status" role="status">Đang kiểm tra cấu hình AI có sẵn…</p>
+          <div id="guestTurnstile" class="guest-turnstile" aria-label="Xác minh an toàn trước khi dùng AI"></div>
+          <p class="guest-note">Không cần API Key. Mỗi yêu cầu sẽ dùng hạn mức AI của website; cần xác minh chống lạm dụng trước khi tạo.</p>
+        </div>
+        <div id="personalAiSettings" class="ai-mode-panel hidden" aria-label="AI cá nhân">
         <div class="api-panel-head"><div class="api-symbol"><svg class="icon"><use href="#i-key"/></svg></div><div><strong>Kết nối AI của bạn</strong><small>Dùng API Key cá nhân</small></div></div>
         <label class="field-label inverse" for="provider">Nền tảng AI</label>
         <select id="provider" class="dark-input" autocomplete="off"><option value="gemini">Google Gemini</option><option value="openai">OpenAI</option></select>
@@ -79,6 +91,7 @@
         <button id="clearKeyBtn" class="text-link" type="button">Xóa API Key khỏi trang</button>
         <div id="apiStatus" class="api-status" role="status"><span class="status-dot"></span><span>Chưa kết nối · Có thể thử demo</span></div>
         <p class="privacy-note">Key chỉ được giữ trong tab đang mở và gửi qua HTTPS đến Function của website để gọi AI. Không lưu vào localStorage.</p>
+        </div>
       </section>
       <div class="sidebar-bottom">
         <div class="help-illustration">✦ <span>AI</span> ✳</div>
@@ -92,7 +105,7 @@
           </summary>
           <p class="creator-about">MarketGenius AI được phát triển bởi <b>Nhất Be</b> cho Vibe Coding 2026. Cảm ơn bạn đã trải nghiệm!</p>
         </details>
-        <span class="version">VIBE CODING 2026 • v1.4.1</span>
+        <span class="version">VIBE CODING 2026 • v1.4.2</span>
       </div>
     </aside>
 
@@ -112,7 +125,7 @@
               <div class="form-field"><label for="audience">Khách hàng mục tiêu <span class="optional">(tùy chọn)</span></label><input type="text" id="audience" maxlength="180" placeholder="VD: Nữ 18–30 tuổi, thích làm đẹp" /></div>
               <div class="form-field"><label for="budgetAmount">Ngân sách thực tế <span class="optional">(tùy chọn, VNĐ)</span></label><input type="number" min="0" max="1000000000000" step="100000" id="budgetAmount" placeholder="VD: 10000000" /></div>
               <div class="form-field full"><label for="usp">Điểm nổi bật / thông tin thêm <span class="optional">(tùy chọn)</span></label><textarea id="usp" rows="2" maxlength="500" placeholder="VD: Sản phẩm organic, giao toàn quốc, khách hàng quan tâm sức khỏe..."></textarea></div></div>
-              <div class="form-footer"><div class="form-notice"><svg class="icon"><use href="#i-shield"/></svg><span>Chưa có API? <strong>Demo miễn phí</strong> vẫn chạy đủ chức năng.</span></div><div class="form-actions"><button id="demoBtn" class="btn btn-secondary" type="button"><svg class="icon"><use href="#i-zap"/></svg> Thử demo</button><button id="generateBtn" class="btn btn-primary" type="submit"><svg class="icon"><use href="#i-sparkle"/></svg> Tạo 5 ý tưởng <svg class="icon"><use href="#i-arrow"/></svg></button></div></div>
+              <div class="form-footer"><div class="form-notice"><svg class="icon"><use href="#i-shield"/></svg><span id="aiFormNotice">Chọn AI có sẵn để tạo nội dung thật mà không phải nhập API Key. Chế độ Demo vẫn dùng được.</span></div><div class="form-actions"><button id="demoBtn" class="btn btn-secondary" type="button"><svg class="icon"><use href="#i-zap"/></svg> Thử demo</button><button id="generateBtn" class="btn btn-primary" type="submit"><svg class="icon"><use href="#i-sparkle"/></svg> Tạo 5 ý tưởng <svg class="icon"><use href="#i-arrow"/></svg></button></div></div>
             </form>
           </section>
           <section id="resultsSection" class="results-section hidden" aria-live="polite"><div class="results-heading"><div><div class="section-overline">BƯỚC 02 · KHÁM PHÁ</div><h2>Chiến dịch dành cho bạn <span class="result-count">05</span></h2><p id="resultsSubtitle">Các ý tưởng được đề xuất theo brief của bạn.</p></div><div class="results-actions"><span id="sourceTag" class="source-tag">DEMO</span><button id="regenerateBtn" class="btn btn-outline small" type="button"><svg class="icon"><use href="#i-rotate"/></svg> Tạo lại</button></div></div><div id="ideasGrid" class="ideas-grid"></div><div class="export-row"><button type="button" id="exportCurrentBtn" class="btn btn-outline small">⇩ Xuất PDF cả 5 chiến dịch</button></div></section>
@@ -151,6 +164,7 @@
   <dialog id="compareDialog" class="studio-dialog comparison-dialog" aria-label="So sánh chiến dịch"><div id="comparisonContent"></div></dialog>
   <div id="printReport" aria-hidden="true"></div>
   <dialog id="detailsDialog" class="details-dialog" aria-label="Chi tiết chiến dịch"><div id="detailsContent"></div></dialog>
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
   <script src="app.js" defer></script>
   <script src="studio.js" defer></script>
   <script src="planner.js" defer></script>
