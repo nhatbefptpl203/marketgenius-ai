@@ -358,7 +358,9 @@ function toggleSaved(idea) {
     state.saved.splice(found,1); notify('Đã bỏ ý tưởng khỏi shortlist.');
   } else {
     if (state.saved.length >= 100) { notify('Shortlist tối đa 100 ý tưởng. Hãy xóa bớt trước khi lưu.', 'error'); return; }
-    state.saved.unshift(JSON.parse(JSON.stringify(idea))); notify('Đã lưu ý tưởng vào shortlist!');
+    const savedCopy = JSON.parse(JSON.stringify(idea));
+    if (!savedCopy.budgetTier && state.ideas.some(x => x.id === idea.id) && state.brief?.budget) savedCopy.budgetTier = state.brief.budget;
+    state.saved.unshift(savedCopy); notify('Đã lưu ý tưởng vào shortlist!');
   }
   saveStorage(); updateCounters();
   if (state.ideas.length) $('#ideasGrid').innerHTML = state.ideas.map(x=>renderCard(x)).join('');
@@ -496,6 +498,8 @@ document.addEventListener('click',async (event)=>{
   if (!target) return;
   const action=target.dataset.action;
   if (action==='close-dialog') { $('#detailsDialog').close(); return; }
+  // Studio / Planner own their action names; do not show a false "not found" toast.
+  if (!['details','save','remove','copy'].includes(action)) return;
   const idea=getIdeaById(target.dataset.id);
   if (!idea) {notify('Không tìm thấy chiến dịch.','error');return;}
   if (action==='details') openDetails(idea);

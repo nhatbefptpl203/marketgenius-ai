@@ -187,7 +187,7 @@
     const ideas=[...studio.comparing].map(id=>getIdeaById(id)).filter(Boolean);
     if(ideas.length<2){notifyInfo('Hãy chọn ít nhất 2 chiến dịch để so sánh.','error');return;}
     el('comparisonContent').innerHTML=`<div class="compare-head"><div><span class="section-overline">SO SÁNH CHIẾN DỊCH</span><h2>Đặt ${ideas.length} chiến dịch cạnh nhau</h2></div><button type="button" class="icon-button" data-action="close-compare" aria-label="Đóng">${icon('close')}</button></div>
-      <div class="table-scroll"><table class="studio-table compare-matrix"><thead><tr><th>Tiêu chí</th>${ideas.map(i=>`<th>${safe(i.title)}</th>`).join('')}</tr></thead><tbody>
+      <div class="table-scroll compare-desktop-matrix"><table class="studio-table compare-matrix"><thead><tr><th>Tiêu chí</th>${ideas.map(i=>`<th>${safe(i.title)}</th>`).join('')}</tr></thead><tbody>
       <tr><th>Kênh</th>${ideas.map(i=>`<td>${safe(i.channel)}</td>`).join('')}</tr>
       <tr><th>Khách hàng</th>${ideas.map(i=>`<td>${safe(i.audience)}</td>`).join('')}</tr>
       <tr><th>Ý tưởng chính</th>${ideas.map(i=>`<td>${safe(i.concept)}</td>`).join('')}</tr>
@@ -196,6 +196,7 @@
       <tr><th>KPI</th>${ideas.map(i=>`<td>${i.kpis.map(safe).join('<br>')}</td>`).join('')}</tr>
       <tr><th>Tiến độ</th>${ideas.map(i=>`<td>${i.doneWeeks.filter(Boolean).length}/4 tuần</td>`).join('')}</tr>
       ${[0,1,2,3].map(w=>`<tr><th>Tuần ${w+1}</th>${ideas.map(i=>`<td>${safe(i.timeline[w]?.task||'')}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+      <div class="compare-mobile-cards" aria-label="So sánh từng chiến dịch trên điện thoại">${ideas.map((i,n)=>`<article class="compare-mobile-card"><span class="idea-number">CHIẾN DỊCH ${String(n+1).padStart(2,'0')}</span><h3>${safe(i.title)}</h3><dl><div><dt>Kênh</dt><dd>${safe(i.channel)}</dd></div><div><dt>Khách hàng</dt><dd>${safe(i.audience)}</dd></div><div><dt>Ý tưởng chính</dt><dd>${safe(i.concept)}</dd></div><div><dt>Ngân sách</dt><dd>${i.budgetAmount===null?'Tỷ lệ tham khảo':currency(i.budgetAmount)}</dd></div><div><dt>KPI</dt><dd>${i.kpis.map(safe).join(' · ')}</dd></div><div><dt>Tiến độ</dt><dd>${i.doneWeeks.filter(Boolean).length}/4 tuần</dd></div></dl><details><summary>4 tuần triển khai</summary>${[0,1,2,3].map(w=>`<p><b>Tuần ${w+1}:</b> ${safe(i.timeline[w]?.task||'')}</p>`).join('')}</details></article>`).join('')}</div>
       <div class="compare-foot"><span>So sánh để hỗ trợ quyết định, không phải dự báo kết quả chắc chắn.</span><button type="button" class="btn btn-primary small" data-action="pdf-compare">⇩ Xuất PDF so sánh</button></div>`;
     if (!el('compareDialog').open) el('compareDialog').showModal();
   }

@@ -193,3 +193,74 @@
 .quality-strategy{font-size:12px;line-height:1.7;margin:15px 0 8px;color:#514894}
 .pdf-idea .quality-extra{break-inside:avoid;background:#fff}
 @media(max-width:680px){.quality-extra{padding:12px}.quality-extra p{font-size:11px}}
+
+/* MarketGenius AI v1.4.1 — Smart Campaign Planner. New styles only, previous UI is retained. */
+.smart-planner{background:#fff;border:1px solid #e4e6f6;box-shadow:0 20px 60px #24326514;border-radius:19px;padding:25px;margin:0 0 22px;scroll-margin-top:20px;min-width:0}
+.planner-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;padding-bottom:18px;border-bottom:1px solid #edf0f8}
+.planner-heading h2{font-size:clamp(18px,2vw,24px);letter-spacing:-.5px;color:#27345a;margin:9px 0 8px}
+.planner-heading p{color:#718099;font-size:11px;line-height:1.9;margin:0;max-width:760px}
+.planner-close{background:#f4f2ff;color:#6653c2;border:0;border-radius:9px;width:35px;height:35px;flex:none;font-size:14px;font-weight:bold}
+.planner-settings{background:#f9faff;border:1px solid #edf0fb;border-radius:13px;padding:19px;margin:19px 0}
+.planner-setting-head{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:15px}
+.planner-setting-head strong,.planner-overview strong,.planner-share-area strong{font-size:13px;color:#304065}
+.planner-selected-count{font-size:10px;color:#6556d7;font-weight:800;background:#eeebff;padding:7px 9px;border-radius:7px;white-space:nowrap}
+.planner-filters{display:flex;flex-wrap:wrap;align-items:flex-end;gap:14px;margin-bottom:13px}
+.planner-filters>label:first-child{display:grid;gap:6px;font-size:10px;font-weight:800;color:#586884;flex:1 1 200px}
+.planner-filters select{width:100%;background:#fff;color:#36446a;border:1px solid #dde3f1;border-radius:9px;padding:10px;font-size:11px;max-width:340px;min-height:38px}
+.planner-select-all{display:flex;gap:7px;align-items:center;color:#516280;font-size:10px;font-weight:750;padding-bottom:10px}
+.planner-select-all input,.planner-campaign input,.planner-task-check input{accent-color:#745aee;width:17px;height:17px;flex:none}
+.planner-campaign-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;max-height:240px;overflow:auto}
+.planner-campaign{display:flex;gap:10px;align-items:flex-start;background:#fff;border:1px solid #e8ebf4;padding:12px;border-radius:10px;cursor:pointer;min-width:0}
+.planner-campaign-content{display:grid;gap:5px;min-width:0}
+.planner-campaign-content strong{font-size:11px;line-height:1.5;color:#283757;overflow-wrap:anywhere}
+.planner-campaign-content small{font-size:9px;line-height:1.5;color:#8291ab}
+.planner-note,.planner-muted{font-size:10px;line-height:1.7;color:#8591a5;margin:12px 0 0}
+.planner-overview{margin:15px 0 16px}
+.planner-overview>div:first-child{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
+#plannerProgressLabel{font-size:10px;color:#75839d}
+.planner-progress-rail{height:9px;border-radius:20px;background:#e9eefa;overflow:hidden}
+.planner-progress-fill{height:100%;width:0;background:linear-gradient(90deg,#6959e7,#59c8ac);border-radius:20px;transition:width .22s ease}
+.planner-week-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin:18px 0 12px}
+.planner-week-tabs button{border:1px solid #e4e7f4;background:#f4f6fb;color:#7c86a3;border-radius:9px;padding:12px 7px;font-size:10px;font-weight:800;min-width:0}
+.planner-week-tabs button.active{color:#fff;background:#7059eb;border-color:#7059eb;box-shadow:0 6px 17px #6959df25}
+.planner-week-content{display:grid;gap:10px}
+.planner-task{display:flex;align-items:flex-start;gap:12px;padding:15px;border:1px solid #e8ecf6;background:#fff;border-radius:12px}
+.planner-task.is-done{background:#f5fbf7;border-color:#d7eddf}
+.planner-task-check{padding-top:3px;flex:none}
+.planner-task-copy{display:grid;gap:4px;min-width:0}
+.planner-task-copy strong{font-size:11px;line-height:1.6;color:#2f3c61;overflow-wrap:anywhere}
+.planner-task-copy span{font-size:9px;color:#745de1;font-weight:800}
+.planner-task-copy p{font-size:11px;line-height:1.8;color:#6d7a92;margin:5px 0 0;white-space:pre-line;overflow-wrap:anywhere}
+.planner-task.is-done .planner-task-copy p{color:#77998d}
+.planner-empty-week{background:#fafaff;border:1px dashed #d9ddf1;border-radius:12px;padding:22px;text-align:center;color:#7887a3;font-size:11px}
+.planner-budget-note{color:#63718e;background:#f3f6fd;border-radius:10px;font-size:10px;line-height:1.7;padding:12px 14px;margin:15px 0 0}
+.planner-share-area{display:flex;align-items:center;justify-content:space-between;gap:17px;flex-wrap:wrap;margin-top:19px;border-top:1px solid #e9edf6;padding-top:18px}
+.planner-share-area>div:first-child{flex:1 1 200px}
+.planner-share-area p{font-size:10px;color:#8190a6;line-height:1.7;margin:7px 0 0}
+.planner-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.planner-actions .btn{white-space:nowrap;font-size:10px}
+.compare-mobile-cards{display:none}
+@media(max-width:900px){.planner-share-area{display:block}.planner-actions{margin-top:14px}.planner-campaign-list{grid-template-columns:1fr}}
+@media(max-width:680px){
+ .smart-planner{padding:17px 14px;border-radius:15px}.planner-heading h2{font-size:19px}.planner-settings{padding:12px}
+ .planner-setting-head{flex-wrap:wrap}.planner-filters{display:block}.planner-filters select{max-width:100%}.planner-select-all{margin-top:12px}
+ .planner-campaign-list{max-height:270px}.planner-week-tabs button{padding:11px 2px;font-size:9px}
+ .planner-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.planner-actions .btn{min-width:0;justify-content:center;text-align:center;padding:10px 5px}
+ .planner-task{padding:12px}.planner-share-area{padding-bottom:70px}
+ .compare-desktop-matrix{display:none}.compare-mobile-cards{display:grid;gap:13px;padding:8px 0}
+ .compare-mobile-card{background:#fff;border:1px solid #e6e9f5;border-radius:13px;padding:16px;min-width:0}
+ .compare-mobile-card h3{font-size:15px;line-height:1.55;color:#283757;margin:8px 0 15px;overflow-wrap:anywhere}
+ .compare-mobile-card dl{margin:0;display:grid;gap:9px}
+ .compare-mobile-card dl>div{display:grid;gap:5px;border-bottom:1px solid #f0f1f8;padding-bottom:8px}
+ .compare-mobile-card dt{font-size:10px;font-weight:800;color:#555fa2}.compare-mobile-card dd{margin:0;color:#5b6c87;font-size:11px;line-height:1.7;overflow-wrap:anywhere}
+ .compare-mobile-card details{margin-top:13px;font-size:11px;line-height:1.8;color:#65738d}.compare-mobile-card summary{cursor:pointer;color:#6355cd;font-weight:800}
+ .compare-mobile-card details p{margin:9px 0}.comparison-dialog{width:min(520px,calc(100vw - 16px));max-height:90dvh;overflow-y:auto}
+ .compare-foot{flex-direction:column;align-items:stretch}.compare-foot .btn{justify-content:center}
+}
+@media print{
+ .planner-print-report .planner-print-week{break-inside:avoid;margin:18px 0 24px}
+ .planner-print-report .planner-print-week h2,.planner-print-report>h2{font-size:12.5pt;color:#5144a5}
+ .planner-print-report .studio-table{width:100%;table-layout:fixed;min-width:0}
+ .planner-print-report .studio-table th,.planner-print-report .studio-table td{white-space:normal;overflow-wrap:anywhere;font-size:8.2pt;line-height:1.55;vertical-align:top}
+ .planner-print-report ul{font-size:9pt;line-height:1.8;padding-left:21px}
+}

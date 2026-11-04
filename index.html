@@ -92,7 +92,7 @@
           </summary>
           <p class="creator-about">MarketGenius AI được phát triển bởi <b>Nhất Be</b> cho Vibe Coding 2026. Cảm ơn bạn đã trải nghiệm!</p>
         </details>
-        <span class="version">VIBE CODING 2026 • v1.4</span>
+        <span class="version">VIBE CODING 2026 • v1.4.1</span>
       </div>
     </aside>
 
@@ -119,7 +119,21 @@
           <footer class="page-footer">MarketGenius AI <span>•</span> Made with <span class="footer-heart" aria-label="tình yêu">♥</span> by <strong class="footer-author">Nhất Be</strong> <span>•</span> Vibe Coding 2026</footer>
         </section>
 
-        <section id="shortlistView" class="page-view"><div class="page-heading shortlist-heading"><div><div class="eyebrow"><svg class="icon"><use href="#i-bookmark"/></svg> YOUR CREATIVE COLLECTION</div><h1>Shortlist <span>của bạn.</span></h1><p>Lưu giữ những ý tưởng tốt nhất và chia sẻ kế hoạch với đồng đội.</p></div></div><div class="shortlist-toolbar"><div><strong>Chiến dịch đã lưu</strong><p id="shortlistDescription">Danh sách lưu trong trình duyệt này.</p></div><button type="button" id="exportShortlistBtn" class="btn btn-outline small">⇩ Xuất PDF</button><button type="button" id="copyAllBtn" class="btn btn-outline small"><svg class="icon"><use href="#i-copy"/></svg> Copy tất cả</button></div><div id="savedGrid" class="ideas-grid"></div><div id="shortlistEmpty" class="empty-state"><div class="empty-icon"><svg class="icon"><use href="#i-bookmark"/></svg></div><h3>Chưa có ý tưởng nào được lưu</h3><p>Khi tìm thấy một chiến dịch phù hợp, nhấn “Lưu shortlist” để quản lý tại đây.</p><button type="button" id="goCreateBtn" class="btn btn-primary"><svg class="icon"><use href="#i-sparkle"/></svg> Khám phá ý tưởng</button></div><footer class="page-footer">MarketGenius AI <span>•</span> Made with <span class="footer-heart" aria-label="tình yêu">♥</span> by <strong class="footer-author">Nhất Be</strong> <span>•</span> Vibe Coding 2026</footer></section>
+        <section id="shortlistView" class="page-view"><div class="page-heading shortlist-heading"><div><div class="eyebrow"><svg class="icon"><use href="#i-bookmark"/></svg> YOUR CREATIVE COLLECTION</div><h1>Shortlist <span>của bạn.</span></h1><p>Lưu giữ những ý tưởng tốt nhất và chia sẻ kế hoạch với đồng đội.</p></div></div><div class="shortlist-toolbar"><div><strong>Chiến dịch đã lưu</strong><p id="shortlistDescription">Danh sách lưu trong trình duyệt này.</p></div><button type="button" id="exportShortlistBtn" class="btn btn-outline small">⇩ Xuất PDF</button><button type="button" id="copyAllBtn" class="btn btn-outline small"><svg class="icon"><use href="#i-copy"/></svg> Copy tất cả</button><button type="button" id="openPlannerBtn" class="btn btn-primary small" aria-controls="smartPlanner" aria-expanded="false">✦ Lập kế hoạch 4 tuần</button></div>
+          <section id="smartPlanner" class="smart-planner hidden" aria-label="Smart Campaign Planner">
+            <div class="planner-heading"><div><span class="section-overline">SMART CAMPAIGN PLANNER · ĐIỂM WOW</span><h2>Kế hoạch Marketing tổng hợp 4 tuần</h2><p>Chọn những chiến dịch đã lưu để gộp nhiệm vụ theo tuần, theo dõi tiến độ và chia sẻ nhanh. Không cần gọi AI thêm.</p></div><button id="closePlannerBtn" type="button" class="planner-close" aria-label="Đóng Smart Planner">✕</button></div>
+            <div class="planner-settings"><div class="planner-setting-head"><strong>Chiến dịch tham gia kế hoạch</strong><span id="plannerSelectionCount" class="planner-selected-count">0 chiến dịch</span></div>
+              <div class="planner-filters"><label for="plannerBudgetFilter">Lọc theo ngân sách gốc
+                <select id="plannerBudgetFilter"><option value="all">Tất cả mức ngân sách</option><option value="Thấp">Thấp</option><option value="Trung bình">Trung bình</option><option value="Cao">Cao</option><option value="Chưa phân loại">Chưa phân loại (bản lưu cũ)</option></select>
+              </label><label class="planner-select-all"><input id="plannerSelectAll" type="checkbox" checked> Chọn tất cả kết quả đang lọc</label></div>
+              <div id="plannerCampaigns" class="planner-campaign-list"></div><p class="planner-note">Bộ lọc chỉ giúp tìm chiến dịch để tích chọn. Kế hoạch bên dưới tổng hợp đúng các chiến dịch đã chọn.</p></div>
+            <div class="planner-overview"><div><strong>Lịch triển khai</strong><span id="plannerProgressLabel">0/0 đầu việc hoàn thành</span></div><div class="planner-progress-rail"><div id="plannerProgressBar" class="planner-progress-fill" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Tiến độ kế hoạch"></div></div></div>
+            <div id="plannerWeekTabs" class="planner-week-tabs" role="tablist" aria-label="Tuần của kế hoạch"><button type="button" class="active" data-planner-week="0" role="tab" aria-selected="true">Tuần 01</button><button type="button" data-planner-week="1" role="tab" aria-selected="false">Tuần 02</button><button type="button" data-planner-week="2" role="tab" aria-selected="false">Tuần 03</button><button type="button" data-planner-week="3" role="tab" aria-selected="false">Tuần 04</button></div>
+            <div id="plannerWeekContent" class="planner-week-content" aria-live="polite"></div>
+            <p id="plannerBudgetNotice" class="planner-budget-note"></p>
+            <div class="planner-share-area"><div><strong>Xuất và chia sẻ kế hoạch</strong><p>Copy nguyên văn bản hoặc Markdown; Zalo/Telegram sẽ mở chat để bạn chọn người nhận và tự gửi.</p></div><div class="planner-actions"><button id="plannerCopyTextBtn" type="button" class="btn btn-outline small">Copy Text</button><button id="plannerCopyMarkdownBtn" type="button" class="btn btn-outline small">Copy Markdown</button><button id="plannerExportPdfBtn" type="button" class="btn btn-primary small">⇩ Xuất PDF</button><button id="plannerShareBtn" type="button" class="btn btn-outline small">↗ Chia sẻ</button><button id="plannerZaloBtn" type="button" class="btn btn-outline small">Zalo</button><button id="plannerTelegramBtn" type="button" class="btn btn-outline small">Telegram</button></div></div>
+          </section>
+<div id="savedGrid" class="ideas-grid"></div><div id="shortlistEmpty" class="empty-state"><div class="empty-icon"><svg class="icon"><use href="#i-bookmark"/></svg></div><h3>Chưa có ý tưởng nào được lưu</h3><p>Khi tìm thấy một chiến dịch phù hợp, nhấn “Lưu shortlist” để quản lý tại đây.</p><button type="button" id="goCreateBtn" class="btn btn-primary"><svg class="icon"><use href="#i-sparkle"/></svg> Khám phá ý tưởng</button></div><footer class="page-footer">MarketGenius AI <span>•</span> Made with <span class="footer-heart" aria-label="tình yêu">♥</span> by <strong class="footer-author">Nhất Be</strong> <span>•</span> Vibe Coding 2026</footer></section>
         <section id="historyView" class="page-view">
           <div class="page-heading shortlist-heading"><div><div class="eyebrow">✦ YOUR CAMPAIGN ARCHIVE</div><h1>Lịch sử <span>chiến dịch.</span></h1><p>Xem lại các lần AI tạo 5 ý tưởng, mở tiếp và xuất báo cáo bất cứ lúc nào.</p></div></div>
           <div class="shortlist-toolbar"><div><strong>Lịch sử đã lưu</strong><p id="historyCount">0 lần tạo được lưu trên thiết bị này</p></div><span class="local-only-tag">Chỉ lưu trên trình duyệt, không lưu API Key</span></div>
@@ -139,5 +153,6 @@
   <dialog id="detailsDialog" class="details-dialog" aria-label="Chi tiết chiến dịch"><div id="detailsContent"></div></dialog>
   <script src="app.js" defer></script>
   <script src="studio.js" defer></script>
+  <script src="planner.js" defer></script>
 </body>
 </html>
