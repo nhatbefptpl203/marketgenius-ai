@@ -1,0 +1,16 @@
+'use strict';
+const assert=require('node:assert/strict');
+const fs=require('node:fs');const path=require('node:path');
+const root=path.resolve(__dirname,'..');
+const source=fs.readFileSync(path.join(root,'smart-templates.js'),'utf8');
+const server=fs.readFileSync(path.join(root,'server.js'),'utf8');
+const index=fs.readFileSync(path.join(root,'index.html'),'utf8');
+assert(source.includes('function productChanged()'),'new product handler needed');
+assert(source.includes('function scheduleAiTemplates()'),'auto generator needed');
+assert(source.includes('const aiCache=loadAiCache()'),'persistent cache must be initialized');
+assert(source.includes('localStorage.setItem(AI_CACHE_KEY'),'completed templates must be cached');
+assert(source.includes("setTimeout(productChanged,350)"),'debounce product input');
+assert(!source.includes('autoRequestedOnce'),'one-time auto-generation restriction removed');
+assert(!server.includes('guestQuotaExhausted')&&!server.includes('reserveGuestCall'),'site quota fully removed');
+assert(index.includes('smart-templates.js?v=autoproduct55'),'cache-busted browser script');
+console.log('PASS static contract: per-product auto generation + persistence and local limits removed');

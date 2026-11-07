@@ -30,16 +30,16 @@ async function send(action,extras={},cb){const result=await handler({httpMethod:
   let reservations=0;
   const invalid=await send('guest-generate',{turnstileToken:'wrong'.repeat(12)},()=>{reservations++});
   assert.equal(invalid.status,403);assert.equal(reservations,0,'Turnstile failure must never reserve quota');
-  // Provider failures must not silently retry (only JSON schema/format failures do).
+  // Network failures must not retry; JSON-format failures still get exactly one retry.
   const providerDown=await send('guest-generate',{},()=>{reservations++});
   assert.equal(providerDown.status,502);assert.equal(reservations,1);assert.equal(gateway,1);
   // 4 ideas -> retry exactly once -> valid 5 ideas.
   const response=await send('guest-generate',{},()=>{reservations++});
   assert.equal(response.status,200,JSON.stringify(response.body));
   assert.equal(response.body.ideas.length,5);assert.equal(gateway,3);
-  // 429 from Gemini -> no retries.
+  // 429 from Gemini -> immediate next-model fallback, not a same-model retry.
   const limited=await send('guest-generate',{},()=>{reservations++});
-  assert.equal(limited.status,429);assert.equal(gateway,4);
+  assert.equal(limited.status,200);assert.equal(limited.body.ideas.length,5);assert.equal(gateway,5);
   assert.equal(reservations,3,'quota reserved once per validated incoming request, not once per retry');
-  console.log('PASS guest-only actions, CAPTCHA, JSON retry once, provider errors without retries');
+  console.log('PASS guest-only actions, CAPTCHA, JSON retry once, network errors and 429 fallback');
 })().catch(e=>{console.error(e);process.exitCode=1});

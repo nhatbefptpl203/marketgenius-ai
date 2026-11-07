@@ -9,7 +9,55 @@ const headers = {
   'X-Content-Type-Options': 'nosniff'
 };
 const reply = (statusCode, data) => ({ statusCode, headers, body: JSON.stringify(data) });
-const {collectProductMedia,emptyResources}=require('./media-research.js');
+const {collectProductMedia,collectCampaignMedia,emptyResources}=require('./media-research.js');
+
+// Ordered, server-owned list. A 429/RESOURCE_EXHAUSTED or temporary 503
+// switches to the next model for this request; frontend payloads stay unchanged.
+const GEMINI_FALLBACK_MODELS=Object.freeze([
+  'gemini-3.5-flash-lite',
+  'gemini-3.1-flash-lite',
+  'gemini-3.6-flash',
+  'gemini-3.8-flash',
+  'gemini-3-flash-preview'
+]);
+
+function canFallbackToNextModel(error){
+  const status=Number(error?.providerStatus || error?.statusCode);
+  return status===429 || status===503 || status===404 ||
+    error?.code==='quota_exceeded' || error?.code==='rate_limited' ||
+    error?.code==='provider_busy';
+}
+
+async function withGeminiFallback(operation){
+  let lastQuotaError=null;
+  const failures=[];
+  for(let i=0;i<GEMINI_FALLBACK_MODELS.length;i++){
+    const model=GEMINI_FALLBACK_MODELS[i];
+    try{return await operation(model);}
+    catch(error){
+      // Log only model ID, HTTP status and sanitized error code: never keys,
+      // prompts, request contents or upstream error body.
+      const status=Number(error?.providerStatus||error?.statusCode)||0;
+      const code=String(error?.code||'unknown').replace(/[^a-z0-9_-]/gi,'').slice(0,45);
+      failures.push(`${model}:${status||'error'}`);
+      console.warn(`[MarketGenius] Gemini model unavailable: ${model}, HTTP ${status||'unknown'}, code ${code}`);
+      // Authentication, invalid prompts/JSON, and network failures must not
+      // trigger more chargeable requests to other models.
+      if(status===429)lastQuotaError=error;
+      if(!canFallbackToNextModel(error))throw error;
+      if(i===GEMINI_FALLBACK_MODELS.length-1){
+        // Return 429 if any model reported exhausted quota; a final 404/503
+        // should not mislead users into thinking a model rename restores quota.
+        const finalError=lastQuotaError || error;
+        console.warn(`[MarketGenius] All fallback attempts failed: ${failures.join(', ')}`);
+        // Frontend error JSON shape is unchanged (ok/error/providerStatus/code).
+        // The raw provider exception is preserved for compatibility.
+        throw finalError;
+      }
+    }
+  }
+}
+
 
 const schema = {
   type:'OBJECT', properties:{
@@ -111,13 +159,14 @@ async function providerRequest(url, options = {}, key, timeoutMs = 45000) {
     let data;
     try { data = JSON.parse(raw); } catch { data = {message:'Nhà cung cấp không trả về JSON.'}; }
     if (!response.ok) {
+      const resourceExhausted=String(data.error?.status||'').toUpperCase()==='RESOURCE_EXHAUSTED';
       let message = data.error?.message || data.message || `HTTP ${response.status}`;
       message = String(message).replaceAll(key,'[API KEY]');
       const error = new Error(`Nhà cung cấp AI báo lỗi (${response.status}): ${message.slice(0,350)}`);
       // Preserve provider HTTP semantics so the frontend can suggest an actionable recovery.
-      error.statusCode = [400,401,403,404,408,422,429,500,502,503,504].includes(response.status) ? response.status : 502;
-      error.providerStatus = response.status;
-      error.code = response.status === 429 ? (/quota exceeded|quota_exceeded|free_tier|daily|per.day|rpd|billing/i.test(message) ? 'quota_exceeded' : 'rate_limited') : response.status === 503 ? 'provider_busy' : response.status === 401 || response.status === 403 ? 'auth_denied' : 'provider_error';
+      error.statusCode = resourceExhausted ? 429 : ([400,401,403,404,408,422,429,500,502,503,504].includes(response.status) ? response.status : 502);
+      error.providerStatus = resourceExhausted ? 429 : response.status;
+      error.code = (response.status === 429 || resourceExhausted) ? (/quota exceeded|quota_exceeded|free_tier|daily|per.day|rpd|billing/i.test(message) ? 'quota_exceeded' : 'rate_limited') : response.status === 503 ? 'provider_busy' : response.status === 401 || response.status === 403 ? 'auth_denied' : 'provider_error';
       // Never return request headers / API key to the browser or write them to logs.
       throw error;
     }
@@ -133,10 +182,13 @@ function isTextModel(model) {
 async function googleGemini(model,key,prompt) {
   const url=`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
   const request=async (message)=>{
+    // Gemini 3.8 Flash rejects legacy sampling parameters such as temperature.
+    const generationConfig={maxOutputTokens:8192,responseMimeType:'application/json',responseSchema:schema};
+    if(model!=='gemini-3.8-flash')generationConfig.temperature=0.7;
     const data=await providerRequest(url,{
       method:'POST',headers:{'x-goog-api-key':key,'Content-Type':'application/json'},
       body:JSON.stringify({contents:[{role:'user',parts:[{text:message}]}],
-        generationConfig:{temperature:0.7,maxOutputTokens:8192,responseMimeType:'application/json',responseSchema:schema}})
+        generationConfig})
     },key,70000);
     const text=(data.candidates?.[0]?.content?.parts||[]).map(p=>p.text||'').join('');
     if(!text){const err=new Error('Gemini chưa trả về JSON hoàn chỉnh.');err.statusCode=422;err.code='empty_model_output';throw err;}
@@ -194,7 +246,7 @@ function parseCampaigns(text) {
   return {ok:true,ideas:data.ideas};
 }
 
-// AI template suggestions are a separate, quota-limited operation using the
+// AI template suggestions are a separate operation using the
 // same site-owned Gemini key. They must never be confused with confirmed facts.
 const allowedIndustries=new Set([
   'Mỹ phẩm & làm đẹp','Thời trang & phụ kiện','Đồ ăn & thức uống',
@@ -264,10 +316,12 @@ function parseTemplates(text,preferredBudget){
 }
 async function generateGuestTemplates(product,preferredBudget,model,key){
   const prompt=buildTemplatePrompt(product,preferredBudget);
+  const generationConfig={maxOutputTokens:4500,responseMimeType:'application/json',responseSchema:templateSchema};
+  if(model!=='gemini-3.8-flash')generationConfig.temperature=0.65;
   const data=await providerRequest(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,{
     method:'POST',headers:{'x-goog-api-key':key,'Content-Type':'application/json'},
     body:JSON.stringify({contents:[{role:'user',parts:[{text:prompt}]}],
-      generationConfig:{temperature:0.65,maxOutputTokens:4500,responseMimeType:'application/json',responseSchema:templateSchema}})
+      generationConfig})
   },key,45000);
   const content=(data.candidates?.[0]?.content?.parts||[]).map(p=>p.text||'').join('');
   if(!content){const err=new Error('Gemini chưa trả về template hoàn chỉnh. Vui lòng thử lại.');err.statusCode=422;err.code='template_empty';throw err;}
@@ -284,7 +338,20 @@ async function generateWithProductResearch(brief,generationPromise,model,key){
     : Promise.resolve(emptyResources(brief.product,'Chủ website đang tạm tắt tính năng tìm nguồn tham khảo.'));
   const result=await generationPromise;
   const resources=await researchPromise;
-  result.ideas=result.ideas.map(idea=>({...idea,resources}));
+  // AI campaign concepts determine five separate image searches (real provider
+  // URLs only). Failure must not turn a valid campaign response into an error.
+  let byCampaign;
+  if(enabled){
+    try{byCampaign=await collectCampaignMedia(brief.product,result.ideas,resources);}
+    catch{byCampaign=null;}
+  }
+  if(!byCampaign){
+    // Safe degradation: do not reuse a single photo across all five ideas.
+    const images=(resources.images||[]).slice();
+    byCampaign=result.ideas.map((_,i)=>({...resources,image:images[i]||null,images:images[i]?[images[i]]:[],
+      note:images[i]?'Ảnh tham khảo từ nguồn sản phẩm.':'Chưa tìm được ảnh phù hợp riêng cho chiến dịch này.'}));
+  }
+  result.ideas=result.ideas.map((idea,i)=>({...idea,resources:byCampaign[i]}));
   return result;
 }
 
@@ -292,7 +359,7 @@ async function generateWithProductResearch(brief,generationPromise,model,key){
 // have been configured. Captcha is not a substitute for provider spending limits.
 function guestSettings(){
   const key=String(process.env.GUEST_GEMINI_API_KEY||'').trim();
-  const model=String(process.env.GUEST_GEMINI_MODEL||'').trim();
+  const model=GEMINI_FALLBACK_MODELS[0]; // Preferred model; legacy GUEST_GEMINI_MODEL is no longer used to pin calls.
   const siteKey=String(process.env.TURNSTILE_SITE_KEY||'').trim();
   const secret=String(process.env.TURNSTILE_SECRET_KEY||'').trim();
   return {key,model,siteKey,secret,available: Boolean(key.length>=8 && isTextModel(model) && siteKey && secret)};
@@ -331,7 +398,7 @@ exports.handler = async (event) => {
       try{verified=await verifyGuestTurnstile(event,body.turnstileToken,cfg.secret,'guest_templates');}catch{}
       if(!verified)return reply(403,{ok:false,code:'turnstile_invalid',error:'Xác minh template đã hết hạn hoặc không hợp lệ. Hãy xác minh lại.'});
       if(typeof event.beforeGuestGemini==='function')await event.beforeGuestGemini('guest-templates');
-      return reply(200,await generateGuestTemplates(product,preferredBudget,cfg.model,cfg.key));
+      return reply(200,await withGeminiFallback(model=>generateGuestTemplates(product,preferredBudget,model,cfg.key)));
     }
     if(body.action==='guest-generate'){
       const cfg=guestSettings();
@@ -343,8 +410,8 @@ exports.handler = async (event) => {
       if(!verified)return reply(403,{ok:false,code:'turnstile_invalid',error:'Xác minh bảo vệ không hợp lệ hoặc đã hết hạn. Vui lòng xác minh lại.'});
       if(typeof event.beforeGuestGemini==='function')await event.beforeGuestGemini('guest-generate');
       const prompt=buildPrompt(body.brief);
-      // Model is pinned server-side. Visitors cannot change it or list models.
-      return reply(200,await generateWithProductResearch(body.brief,googleGemini(cfg.model,cfg.key,prompt),cfg.model,cfg.key));
+      // Model order is server-owned. Visitors cannot change it or list models.
+      return reply(200,await generateWithProductResearch(body.brief,withGeminiFallback(model=>googleGemini(model,cfg.key,prompt)),cfg.model,cfg.key));
     }
     return reply(400,{ok:false,error:'Hành động không hợp lệ.'});
   } catch (error) {

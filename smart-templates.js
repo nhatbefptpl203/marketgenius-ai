@@ -27,7 +27,7 @@
       <div><span>GIÁ BÁN / SỐ LIỆU THỰC</span><p>Chưa có dữ liệu. Nhập giá thật nếu biết; không tự đoán.</p></div>
       <div><span>KÊNH NÊN THỬ</span><p data-template-channels></p><button type="button" data-template-channel-action class="template-confirm-channels">Tôi có thể triển khai các kênh này</button></div>
       <div><span>QUYỀN SỬ DỤNG / KHUYẾN MÃI</span><p>Chỉ chọn những gì doanh nghiệp thật sự được phép dùng.</p></div>
-    </div><p class="template-verification-disclaimer">Ô có nhãn <b>NỘI DUNG MẪU</b> là bản nháp gợi ý, không được gửi sang AI như thông tin đã xác nhận. Nhấn vào ô và sửa để xác nhận.</p>`;
+    </div>`;
   banner.insertAdjacentElement('afterend',verification);
 
   const LOCAL_KEY = 'marketgenius-brief-templates-v1';
@@ -102,10 +102,34 @@
   let aiSuggestions=[];
   let aiProductKey='';
   let offlineMode=false;
-  let lastSentProductKey='';
-  let autoRequestedOnce=false;
-  const aiCache=new Map();
-  const productKey=value=>String(value||'').trim().toLocaleLowerCase('vi-VN');
+  let lastObservedProductKey='';
+  let aiRequestKey='';
+  const attemptedAutoKeys=new Set();
+  const AI_CACHE_KEY='marketgenius-ai-product-templates-v55';
+  const MAX_CACHED_PRODUCTS=24;
+  const productKey=value=>String(value||'').trim().replace(/\s+/g,' ').toLocaleLowerCase('vi-VN');
+  function loadAiCache(){
+    try{
+      const saved=JSON.parse(localStorage.getItem(AI_CACHE_KEY)||'[]');
+      if(!Array.isArray(saved))return new Map();
+      return new Map(saved.filter(entry=>Array.isArray(entry)&&typeof entry[0]==='string'&&entry[0].length<=120&&
+        Array.isArray(entry[1])&&entry[1].length===4).slice(-MAX_CACHED_PRODUCTS));
+    }catch{return new Map();}
+  }
+  const aiCache=loadAiCache();
+  function cacheAiTemplates(key,templates){
+    if(aiCache.has(key))aiCache.delete(key);
+    aiCache.set(key,templates);
+    while(aiCache.size>MAX_CACHED_PRODUCTS)aiCache.delete(aiCache.keys().next().value);
+    try{localStorage.setItem(AI_CACHE_KEY,JSON.stringify([...aiCache]));}catch{}
+  }
+  function useCachedTemplates(key){
+    const cached=aiCache.get(key);
+    if(!cached)return false;
+    aiSuggestions=cached;aiProductKey=key;offlineMode=false;
+    render();aiSetStatus('Đã sử dụng lại 4 template AI cho tên sản phẩm này.','ready');
+    return true;
+  }
   function aiSetStatus(message,kind=''){
     if(!aiStatus)return;
     aiStatus.textContent=message;
@@ -130,10 +154,8 @@
           }else{
             aiSetStatus('Đã xác minh. AI sẵn sàng tạo mẫu theo sản phẩm.','ready');
           }
-          if(!autoRequestedOnce && get('product').trim().length>=3){
-            clearTimeout(aiAutoTimer);
-            aiAutoTimer=setTimeout(()=>requestAiTemplates(false),1900);
-          }
+          // A fresh token also enables automatic generation when the product changed.
+          scheduleAiTemplates();
         },
         'expired-callback':()=>{aiToken='';aiSetStatus('Xác minh hết hạn. Vui lòng xác minh lại.','error');},
         'error-callback':()=>{aiToken='';aiSetStatus('Lỗi xác minh. Hãy tải lại trang hoặc dùng mẫu cơ bản.','error');}
@@ -162,12 +184,38 @@
   }
   function scheduleAiTemplates(){
     clearTimeout(aiAutoTimer);
-    if(!aiReady || autoRequestedOnce || aiInFlight)return;
     const key=productKey(get('product'));
-    if(key.length<3||key===aiProductKey)return;
+    if(key.length<3||!aiReady)return;
+    if(aiProductKey===key&&aiSuggestions.length)return;
+    if(useCachedTemplates(key))return;
+    // Do not automatically re-request an unchanged name after an error;
+    // a manual retry button remains available for that case.
+    if(attemptedAutoKeys.has(key))return;
+    if(aiInFlight)return; // finally schedules the most recent product.
+    if(!aiToken){
+      ensureAiWidget();
+      aiSetStatus('Đang chờ xác minh để tự tạo 4 mẫu cho sản phẩm mới.');
+      return;
+    }
     aiAutoTimer=setTimeout(()=>{
-      if(productKey(get('product'))===key && aiToken)requestAiTemplates(false);
-    },1900);
+      if(productKey(get('product'))===key)requestAiTemplates(false);
+    },850);
+  }
+  function productChanged(){
+    const key=productKey(get('product'));
+    if(key===lastObservedProductKey)return;
+    lastObservedProductKey=key;
+    // Old campaign suggestions and selection must not be shown for a new product.
+    aiSuggestions=[];aiProductKey='';offlineMode=false;
+    activeTemplateId=null;
+    banner.classList.add('hidden');verification.classList.add('hidden');
+    render();
+    if(key.length>=3){
+      if(!useCachedTemplates(key))scheduleAiTemplates();
+    }else{
+      clearTimeout(aiAutoTimer);
+      if(key.length>0)aiSetStatus('Nhập ít nhất 3 ký tự để AI tự tạo 4 mẫu.');
+    }
   }
   async function requestAiTemplates(manual=true){
     const product=get('product').trim();
@@ -175,12 +223,11 @@
     if(product.length<3){aiSetStatus('Nhập tên sản phẩm ít nhất 3 ký tự.','error');return;}
     if(aiInFlight)return;
     if(!aiReady){aiSetStatus('AI có sẵn chưa cấu hình. Hãy dùng mẫu cơ bản hoặc thử lại sau.','error');offlineBtn?.classList.remove('hidden');return;}
-    const cached=aiCache.get(key);
-    if(cached){aiSuggestions=cached;aiProductKey=key;offlineMode=false;render();aiSetStatus('Đã sử dụng lại template AI được tạo cho sản phẩm này.','ready');return;}
+    if(useCachedTemplates(key))return;
     if(!aiToken){
       ensureAiWidget();aiSetStatus('Hãy hoàn thành xác minh an toàn phía trên để AI tạo template.','error');return;
     }
-    aiInFlight=true;autoRequestedOnce=true;lastSentProductKey=key;
+    aiInFlight=true;aiRequestKey=key;attemptedAutoKeys.add(key);
     if(aiBtn){aiBtn.disabled=true;aiBtn.textContent='Đang tạo template...';}
     aiSetStatus(`AI đang phân tích “${product.slice(0,70)}” và tạo 4 mẫu Marketing...`,'loading');
     try{
@@ -199,18 +246,23 @@
         ...item,id:`ai:${key}:${i+1}`,icon:['↗','▣','◎','▤'][i],source:'ai',
         suggestedChannels:Array.isArray(item.suggestedChannels)?item.suggestedChannels.join(', '):String(item.suggestedChannels||'')
       }));
-      aiCache.set(key,templates);
+      cacheAiTemplates(key,templates);
       if(productKey(get('product'))===key){
         aiSuggestions=templates;aiProductKey=key;offlineMode=false;
         render();aiSetStatus('Đã có 4 template do AI tạo. Chọn mẫu để điền form Chuyên sâu.','ready');
-      }else{aiSetStatus('Bạn đã đổi sản phẩm trong lúc AI xử lý. Nhấn tạo lại cho tên sản phẩm mới.');}
+      }else{aiSetStatus('Đã lưu mẫu của sản phẩm trước; đang chuẩn bị mẫu cho sản phẩm mới.');}
     }catch(err){
-      aiSetStatus(err.message||'Không tạo được template. Vui lòng thử lại.','error');
-      offlineBtn?.classList.remove('hidden');
+      if(productKey(get('product'))===key){
+        aiSetStatus(err.message||'Không tạo được template. Bạn có thể thử lại bằng nút tạo AI.','error');
+        offlineBtn?.classList.remove('hidden');
+      }
     }finally{
-      aiInFlight=false;
+      aiInFlight=false;aiRequestKey='';
       if(aiBtn){aiBtn.disabled=false;aiBtn.textContent='Tạo 4 mẫu bằng AI';}
       resetTemplateTurnstile();
+      // If a different name was entered while the API request was running,
+      // start its own auto-generation after the next valid Turnstile token.
+      if(productKey(get('product'))!==key)scheduleAiTemplates();
     }
   }
 
@@ -269,12 +321,7 @@
     const field=pick(id);
     if(!field)return;
     field.dataset.templateDraft='1';
-    const container=field.closest('.form-field');
-    if(container){
-      let label=container.querySelector('.template-draft-label');
-      if(!label){label=document.createElement('small');label.className='template-draft-label';container.append(label);}
-      label.textContent='✎ Nội dung MẪU – chưa xác minh. AI sẽ không coi đây là dữ kiện thật cho tới khi bạn sửa hoặc xác nhận.';
-    }
+
   }
   function clearDraftLabels() {
     DRAFT_FIELDS.forEach(id=>{
@@ -472,7 +519,7 @@
     });
   }
   pick('product').addEventListener('input',()=>{
-    clearTimeout(renderTimer);renderTimer=setTimeout(()=>{render();scheduleAiTemplates();},250);
+    clearTimeout(renderTimer);renderTimer=setTimeout(productChanged,350);
   });
   pick('industry')?.addEventListener('change',()=>{if(get('product').trim())render();});
   document.querySelectorAll('input[name="briefMode"]').forEach(el=>el.addEventListener('change',updateVisibility));
@@ -482,5 +529,6 @@
   aiBtn?.addEventListener('click',()=>requestAiTemplates(true));
   offlineBtn?.addEventListener('click',()=>{offlineMode=true;render();aiSetStatus('Đang dùng mẫu cơ bản không qua AI. Nhấn nút tạo AI để cá nhân hóa.');});
   // Never overwrite the form on page load or on product keystrokes.
-  render();loadAiConfig();
+  lastObservedProductKey=productKey(get('product'));
+  render();loadAiConfig().then(()=>scheduleAiTemplates());
 })();

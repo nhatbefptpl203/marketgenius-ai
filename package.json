@@ -1,14 +1,14 @@
 {
   "name": "marketgenius-ai-tenten",
-  "version": "2.3.0-progress-4.7",
+  "version": "2.3.0-gd4-auto-templates-5.5",
   "private": true,
   "description": "MarketGenius AI — cPanel Node.js edition",
   "type": "commonjs",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "check": "node --check server.js && node --check image-proxy.js && node --check app.js && node --check studio.js && node --check planner.js && node --check netlify/functions/ai.js && node --check netlify/functions/media-research.js && node --check smart-templates.js && node --check studio-layout.js",
-    "test": "node tests/test-direct-images.js && node tests/test-full-ai-flow.js && node tests/test-image-search-fixed.js && node tests/test-media-research.js && node tests/test-guest-only.js && node tests/test-server-guest-quota.js && node tests/test-guest-templates.js && node tests/test-server-cooldown.js && node tests/test-stage4-static.js && node tests/test-progress-estimate.js"
+    "check": "node --check server.js && node --check image-proxy.js && node --check app.js && node --check studio.js && node --check planner.js && node --check netlify/functions/ai.js && node --check netlify/functions/media-research.js && node --check smart-templates.js && node --check studio-layout.js && node --check browser-use-cloud.js && node --check browser-use-client.js && node --check free-media-service.js && node --check free-media-client.js && node --check media-source-providers.js",
+    "test": "node tests/test-direct-images.js && node tests/test-full-ai-flow.js && node tests/test-image-search-fixed.js && node tests/test-media-research.js && node tests/test-media-verified-fallback.js && node tests/test-guest-only.js && node tests/test-server-no-local-quota.js && node tests/test-guest-templates.js && node tests/test-auto-template-product-change.js && node tests/test-stage4-static.js && node tests/test-progress-estimate.js && node tests/test-auto-campaign-images.js && node tests/test-browser-use-cloud.js && node tests/test-free-media.js && node tests/test-media-source-providers.js && node tests/test-ui-cleanup-v54.js && node tests/test-gemini-auto-fallback.js"
   },
   "engines": {
     "node": ">=20"

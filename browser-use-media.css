@@ -1,0 +1,11 @@
+/* Browser Use cloud research is a second, optional phase AFTER campaign generation. */
+.cloud-media-status{display:flex;align-items:center;flex-wrap:wrap;gap:9px 12px;margin:12px 0 17px;padding:11px 14px;border:1px solid var(--border,#dce1e7);border-radius:12px;background:#fff;color:var(--text,#18212e);font-size:13px;line-height:1.5}
+.cloud-media-status[hidden]{display:none}
+.cloud-media-dot{flex:0 0 auto;width:8px;height:8px;border-radius:50%;background:var(--accent,#f27625)}
+.cloud-media-status.done .cloud-media-dot{background:#18956e}
+.cloud-media-status.error .cloud-media-dot{background:#d45353}
+.cloud-media-status.neutral .cloud-media-dot{background:#89919b}
+.cloud-media-message{flex:1 1 220px}
+.cloud-media-cancel{flex:0 0 auto;padding:7px 10px;border:1px solid var(--border,#dce1e7);border-radius:9px;color:var(--text,#18212e);background:#fff;font:inherit;font-weight:600;cursor:pointer}
+.cloud-media-cancel:hover{background:var(--border-soft,#f4f6f7)}
+@media(max-width:480px){.cloud-media-status{width:100%;padding:11px}.cloud-media-cancel{margin-left:auto}}

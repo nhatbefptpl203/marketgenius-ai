@@ -313,3 +313,72 @@ dialog::backdrop {background:var(--overlay);}
 .history-actions{display:flex;flex-wrap:wrap;gap:6px}
 .guest-turnstile.mg-verified{display:none!important}
 @media(max-width:680px){.mg-sample-card{padding:16px}.history-item{align-items:flex-start!important;flex-wrap:wrap}.history-info{flex-basis:calc(100% - 24px)}.history-actions{padding-left:24px}.mg-sample-kpis{gap:5px}.mg-sample-kpis span{padding:7px}}
+
+/* v5.9 — Clearly labeled campaign action menu and opt-in sharing controls. */
+.studio-card-tools .mg-card-menu {margin-left:auto;position:relative;isolation:isolate;}
+.studio-card-tools .mg-card-menu[open] {z-index:60;}
+.studio-card-tools .mg-card-menu > summary {
+  display:inline-flex;align-items:center;justify-content:center;gap:9px;
+  width:auto;min-width:132px;min-height:42px;padding:9px 13px;
+  border:1px solid #FF8A00;border-radius:10px;
+  background:linear-gradient(135deg,#FF5A1F 0%,#FF8A00 100%);
+  box-shadow:0 6px 16px -3px rgba(255,90,31,.3);
+  color:#fff;font-size:12px;font-weight:700;line-height:1.2;
+  cursor:pointer;user-select:none;transition:filter .18s ease,transform .18s ease,box-shadow .18s ease;
+}
+.studio-card-tools .mg-card-menu > summary svg {display:block;width:17px;height:17px;stroke:#fff;fill:none;}
+.studio-card-tools .mg-card-menu > summary:hover,.studio-card-tools .mg-card-menu[open] > summary {filter:brightness(1.06);transform:translateY(-1px);box-shadow:0 8px 17px rgba(255,90,31,.31);}
+.studio-card-tools .mg-card-menu > summary:focus-visible {outline:3px solid #FDBA74;outline-offset:3px;}
+.mg-card-menu-chevron {font-size:17px;line-height:1;margin-left:2px;transition:transform .18s ease;}
+.mg-card-menu[open] .mg-card-menu-chevron {transform:rotate(180deg);}
+.studio-card-tools .mg-card-menu-items {
+  z-index:70;width:min(255px,calc(100vw - 44px));padding:8px;
+  border:1px solid #E2E8F0;border-radius:12px;background:#fff;
+  box-shadow:0 16px 35px -9px rgba(15,23,42,.18);
+  gap:2px;
+}
+.mg-menu-group-label {font-size:10px;font-weight:800;letter-spacing:.065em;text-transform:uppercase;color:#64748B;padding:9px 10px 5px;}
+.mg-menu-group-divider {border-top:1px solid #E2E8F0;margin-top:5px;padding-top:13px;}
+.studio-card-tools .mg-card-menu-items button {
+  font-family:inherit;font-size:12px;font-weight:650;display:flex;align-items:center;gap:11px;
+  width:100%;min-height:43px;padding:9px 10px;border:0;border-radius:8px;background:transparent;color:#0F172A;text-align:left;
+}
+.studio-card-tools .mg-card-menu-items button:hover,.studio-card-tools .mg-card-menu-items button:focus-visible {background:#FFF7ED;color:#C2410C;}
+.mg-menu-icon {display:inline-flex;align-items:center;justify-content:center;min-width:25px;font-size:20px;font-weight:500;color:#64748B;}
+.mg-platform-mark {width:27px;height:27px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex:0 0 27px;line-height:1;}
+.mg-platform-zalo {background:#E8F2FF;color:#1269E9;}
+.mg-platform-telegram {background:#E1F5FD;color:#0284C7;font-size:16px;}
+.studio-card-tools .mg-card-menu-items button.mg-menu-share-zalo {background:#F5F9FF;color:#135DBA;}
+.studio-card-tools .mg-card-menu-items button.mg-menu-share-telegram {background:#F1FAFF;color:#0369A1;}
+.studio-card-tools .mg-card-menu-items button.mg-menu-share-zalo:hover {background:#E5F0FF;color:#114D97;}
+.studio-card-tools .mg-card-menu-items button.mg-menu-share-telegram:hover {background:#DCF4FE;color:#075985;}
+.studio-card-tools .mg-card-menu-items .mg-menu-remove {color:#B91C1C;border-top:1px solid #F1F5F9;margin-top:7px;border-radius:0 0 8px 8px;}
+.detail-footer .mg-share-modal-zalo,.detail-footer .mg-share-modal-telegram {display:inline-flex;gap:6px;align-items:center;justify-content:center;border:1px solid #DBEAFE;background:#F8FBFF;color:#1D4ED8;}
+.detail-footer .mg-share-modal-telegram {border-color:#BAE6FD;background:#F0F9FF;color:#0369A1;}
+.detail-footer .mg-share-modal-zalo:hover,.detail-footer .mg-share-modal-telegram:hover {filter:brightness(.97);}
+.detail-footer .mg-platform-mark {width:20px;height:20px;flex-basis:20px;font-size:11px;border-radius:6px;}
+@media(max-width:460px) {
+ .studio-card-tools .mg-card-menu > summary {min-width:125px;padding-inline:10px;}
+ .studio-card-tools .mg-card-menu-items {right:0;max-width:calc(100vw - 40px);}
+ .detail-footer .mg-share-modal-zalo,.detail-footer .mg-share-modal-telegram {flex:1 0 auto;}
+}
+@media(prefers-reduced-motion:reduce) {
+ .studio-card-tools .mg-card-menu > summary,.mg-card-menu-chevron {transition:none!important;transform:none!important;}
+}
+
+
+/* v5.9.1 — Mobile home sample: respect the content's natural height.
+   Earlier breakpoints forced .studio-home-visual to 315/350px, while the
+   sample plan is taller. With hero overflow:hidden, weeks 3–4 were clipped.
+   Keep the desktop layout unchanged. */
+@media (max-width: 1023px) {
+  .studio-home-visual {
+    height: auto;
+    min-height: 0;
+  }
+  .studio-home-visual .mg-sample-card {
+    width: 100%;
+    height: auto;
+    box-sizing: border-box;
+  }
+}

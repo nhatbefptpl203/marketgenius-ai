@@ -11,6 +11,10 @@ const path = require('node:path');
 const zlib = require('node:zlib');
 const { handler: aiHandler } = require('./netlify/functions/ai.js');
 const {signImageUrl,imageResponse}=require('./image-proxy.js');
+const {BrowserUseMediaService}=require('./browser-use-cloud.js');
+const {FreeMediaService}=require('./free-media-service.js');
+const browserMedia=new BrowserUseMediaService();
+const freeMedia=new FreeMediaService();
 
 const ROOT = __dirname;
 const STATIC_FILES = Object.freeze({
@@ -23,6 +27,9 @@ const STATIC_FILES = Object.freeze({
   '/studio-layout.js': ['studio-layout.js','application/javascript; charset=utf-8'],
   '/smart-templates.css': ['smart-templates.css','text/css; charset=utf-8'],
   '/research-media.css': ['research-media.css','text/css; charset=utf-8'],
+  '/browser-use-media.css': ['browser-use-media.css','text/css; charset=utf-8'],
+  '/browser-use-client.js': ['browser-use-client.js','application/javascript; charset=utf-8'],
+  '/free-media-client.js': ['free-media-client.js','application/javascript; charset=utf-8'],
   '/smart-templates.js': ['smart-templates.js','application/javascript; charset=utf-8'],
   '/favicon.ico': ['favicon.ico','image/x-icon'],
   '/favicon-32.png': ['favicon-32.png','image/png'],
@@ -49,43 +56,15 @@ const COMPRESSIBLE = /^(?:text\/|application\/(?:javascript|json|xml|manifest\+j
 const compressedCache=new Map();
 
 
-// A lightweight safety brake for the site's own Gemini quota. It resets when
-// the Node process restarts and is NOT a durable multi-worker rate limiter.
-const guestHits=new Map();
-const guestLastGenerate=new Map();
-const guestGlobal={day:'',count:0};
-const guestIpMax=boundedInt(process.env.GUEST_IP_DAILY_LIMIT,5,1,500);
-const guestTotalMax=boundedInt(process.env.GUEST_DAILY_LIMIT,60,1,10000);
-const GENERATE_GAP_MS=20000;
-function boundedInt(value,fallback,min,max){const n=Number(value);return Number.isInteger(n)&&n>=min&&n<=max?n:fallback;}
-function getDay(){return new Date().toISOString().slice(0,10);}
+// No application-level daily, per-IP or 20-second Gemini call quotas.
+// Every AI POST is still validated by the existing Turnstile challenge in ai.js.
+// Concurrent duplicate submissions are prevented client-side; the Gemini provider
+// may still enforce its own rate limits and billing restrictions.
 function clientIp(req){
   const peer=String(req.socket.remoteAddress||'');
   const viaProxy=peer==='127.0.0.1'||peer==='::1'||peer==='::ffff:127.0.0.1';
   const forwarded=String(req.headers['x-forwarded-for']||'').split(',')[0].trim();
   return viaProxy && forwarded && forwarded.length<100 ? forwarded : peer||'unknown';
-}
-function guestQuotaExhausted(req){
-  const day=getDay();
-  if(guestGlobal.day!==day)return false;
-  return guestGlobal.count>=guestTotalMax || (guestHits.get(clientIp(req))||0)>=guestIpMax;
-}
-function reserveGuestCall(req,action){
-  const day=getDay();
-  if(guestGlobal.day!==day){guestGlobal.day=day;guestGlobal.count=0;guestHits.clear();guestLastGenerate.clear();}
-  const ip=clientIp(req);
-  const count=guestHits.get(ip)||0;
-  if(count>=guestIpMax||guestGlobal.count>=guestTotalMax){
-    const error=new Error('AI có sẵn đã đạt hạn mức. Bạn có thể thử lại sau hoặc dùng Demo ngay.');
-    error.statusCode=429;error.code='guest_site_limit';throw error;
-  }
-  if(action==='guest-generate' && Date.now()-(guestLastGenerate.get(ip)||0)<GENERATE_GAP_MS){
-    const error=new Error('Vui lòng chờ ít nhất 20 giây giữa hai lượt tạo chiến dịch hoặc dùng Demo.');
-    error.statusCode=429;error.code='guest_cooldown';throw error;
-  }
-  // Reserve before the Gemini call, even if Gemini fails. CAPTCHA failures never reach here.
-  guestHits.set(ip,count+1);guestGlobal.count++;
-  if(action==='guest-generate')guestLastGenerate.set(ip,Date.now());
 }
 
 function json(res,status,data,method='GET',extra={}){
@@ -152,9 +131,70 @@ const server=http.createServer(async(req,res)=>{
       res.writeHead(200,{...BASE_HEADERS,'Content-Type':out.mime,'Cache-Control':'private, max-age=300','Content-Length':String(out.buffer.length)});
       return res.end(out.buffer);
     }
+    if(url.pathname.startsWith('/api/free-media/image/')){
+      if(!['GET','HEAD'].includes(req.method))return json(res,405,{ok:false,error:'Chỉ hỗ trợ GET.'},req.method);
+      const hash=url.pathname.slice('/api/free-media/image/'.length);
+      const found=await freeMedia.readImage(hash);
+      if(!found)return json(res,404,{ok:false,error:'Không tìm thấy ảnh đã lưu.'},req.method);
+      res.writeHead(200,{...BASE_HEADERS,'Content-Type':found.mime,'Content-Length':found.bytes.length,
+        'Cache-Control':'public, max-age=604800','Cross-Origin-Resource-Policy':'same-origin'});
+      return res.end(req.method==='HEAD'?undefined:found.bytes);
+    }
+    if(url.pathname==='/api/media-sources/status'){
+      if(req.method!=='GET')return json(res,405,{ok:false,error:'Chỉ hỗ trợ GET.'});
+      const all=freeMedia.providerStatus();
+      return json(res,200,{ok:true,enabled:all.enabled,providers:{
+        google:all.google,youtube:all.youtube,pinterest:all.pinterest,pixabay:all.pixabay},
+        message:'Trạng thái chỉ kiểm tra biến môi trường; không xác nhận key hoạt động.'});
+    }
+    if(url.pathname==='/api/free-media/status'){
+      if(req.method!=='GET')return json(res,405,{ok:false,error:'Chỉ hỗ trợ GET.'});
+      return json(res,200,{ok:true,enabled:freeMedia.enabled,pixabay:freeMedia.hasPixabay,youtube:freeMedia.hasYoutube,google:freeMedia.extra.googleEnabled,pinterest:freeMedia.extra.pinterestEnabled});
+    }
+    if(url.pathname==='/api/free-media/search'){
+      if(req.method!=='POST')return json(res,405,{ok:false,error:'Chỉ hỗ trợ POST.'});
+      const origin=req.headers.origin;
+      if(origin){let host='';try{host=new URL(origin).host.toLowerCase();}catch{}
+        if(!host||host!==String(req.headers.host||'').toLowerCase())return json(res,403,{ok:false,error:'Yêu cầu không cùng nguồn.'});}
+      const fetchSite=String(req.headers['sec-fetch-site']||'');
+      if(fetchSite&&!['same-origin','none'].includes(fetchSite))return json(res,403,{ok:false,error:'Yêu cầu không cùng nguồn.'});
+      let body;try{body=JSON.parse(await readBody(req));}catch{return json(res,400,{ok:false,error:'JSON không hợp lệ.'});}
+      if(!body||typeof body.ticket!=='string'||body.ticket.length>200)return json(res,400,{ok:false,error:'Vé tìm nguồn không hợp lệ.'});
+      try{return json(res,200,{ok:true,...await freeMedia.search(body.ticket,clientIp(req))});}
+      catch(err){const status=Number(err.statusCode)||502;
+        return json(res,status,{ok:false,error:String(err.message||'Không tìm được ảnh/video tham khảo.').slice(0,200)});}
+    }
     if(url.pathname==='/healthz'){
       if(req.method!=='GET')return json(res,405,{ok:false,error:'Chỉ hỗ trợ GET.'});
       return json(res,200,{ok:true,service:'MarketGenius AI',runtime:'Node.js',status:'ready'});
+    }
+    if(url.pathname.startsWith('/api/browser-use/')){
+      if(req.method!=='POST')return json(res,405,{ok:false,error:'Chỉ hỗ trợ POST.'});
+      // Never accept cross-site POSTs to paid cloud operations.
+      const origin=req.headers.origin;
+      if(origin){let host='';try{host=new URL(origin).host.toLowerCase();}catch{}
+        if(!host||host!==String(req.headers.host||'').toLowerCase())return json(res,403,{ok:false,error:'Yêu cầu không cùng nguồn.'});}
+      const fetchSite=String(req.headers['sec-fetch-site']||'');
+      if(fetchSite && !['same-origin','none'].includes(fetchSite))return json(res,403,{ok:false,error:'Yêu cầu không cùng nguồn.'});
+      let body;try{body=JSON.parse(await readBody(req));}catch{return json(res,400,{ok:false,error:'JSON không hợp lệ.'});}
+      if(!body||typeof body!=='object'||Array.isArray(body))return json(res,400,{ok:false,error:'Dữ liệu không hợp lệ.'});
+      const ip=clientIp(req);
+      try{
+        let result;
+        if(url.pathname==='/api/browser-use/start')result=await browserMedia.start(String(body.ticket||''),ip);
+        else if(url.pathname==='/api/browser-use/status')result=await browserMedia.status(String(body.jobId||''),String(body.access||''),ip);
+        else if(url.pathname==='/api/browser-use/cancel')result=await browserMedia.cancel(String(body.jobId||''),String(body.access||''),ip);
+        else return json(res,404,{ok:false,error:'Không tìm thấy API.'});
+        if(Array.isArray(result.campaigns))for(const item of result.campaigns){
+          if(item?.image?.url){item.image.proxyUrl=signImageUrl(item.image.url);}
+          for(const img of item?.images||[])if(img?.url)img.proxyUrl=signImageUrl(img.url);
+        }
+        return json(res,200,{ok:true,...result});
+      }catch(err){
+        // Never return API keys or provider response bodies.
+        const code=Number(err.statusCode)||502;
+        return json(res,code,{ok:false,error:String(err.message||'Không thể tìm nguồn bằng Browser Use.').slice(0,240)});
+      }
     }
     if(url.pathname!=='/api/ai'){
       return await serveStatic(req,res,url.pathname,url.search);
@@ -177,16 +217,12 @@ const server=http.createServer(async(req,res)=>{
         return json(res,403,{ok:false,error:'Yêu cầu không cùng nguồn với website.'});
       }
     }
-    const event={httpMethod:req.method,headers:req.headers,body,
-      beforeGuestGemini:(action)=>reserveGuestCall(req,action)};
+    const event={httpMethod:req.method,headers:req.headers,body};
     const result=await aiHandler(event);
     const status=Number(result.statusCode)||500;
     const text=typeof result.body==='string'?result.body:JSON.stringify(result.body||{});
     let resultData;
     try{resultData=JSON.parse(text);}catch{resultData={ok:false,error:'Máy chủ trả phản hồi không hợp lệ.'};}
-    if(req.method==='GET'&&status===200&&guestQuotaExhausted(req)){
-      resultData.guestAvailable=false;resultData.guestModel=null;resultData.turnstileSiteKey=null;
-    }
     // Same-origin signed image fallback avoids broken hotlinks on campaign cards.
     if(status===200&&Array.isArray(resultData?.ideas)){
       const seen=new Map();
@@ -197,6 +233,12 @@ const server=http.createServer(async(req,res)=>{
         }
         if(r.image?.url)r.image.proxyUrl=seen.get(r.image.url)||signImageUrl(r.image.url);
       }
+    }
+    if(status===200&&req.method==='POST'&&payload?.action==='guest-generate'&&resultData?.ok===true&&Array.isArray(resultData?.ideas)&&resultData.ideas.length===5){
+      const ticket=browserMedia.issueTicket(clientIp(req),payload.brief?.product,resultData.ideas);
+      if(ticket)resultData.mediaTicket=ticket;
+      const freeTicket=freeMedia.issueTicket(clientIp(req),payload.brief,resultData.ideas);
+      if(freeTicket)resultData.freeMediaTicket=freeTicket;
     }
     return json(res,status,resultData);
   }catch(error){

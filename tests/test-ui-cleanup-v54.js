@@ -1,0 +1,23 @@
+'use strict';
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const html=fs.readFileSync('index.html','utf8');
+const app=fs.readFileSync('app.js','utf8');
+const templates=fs.readFileSync('smart-templates.js','utf8');
+const media=fs.readFileSync('free-media-client.js','utf8');
+const server=fs.readFileSync('server.js','utf8');
+for(const phrase of ['Minh bạch về AI và dữ liệu','Giải thích thuật ngữ Marketing thường gặp','id="sourcesView"','data-view="sources"','source-settings.js','source-settings.css'])
+  assert.ok(!html.includes(phrase),phrase);
+assert.ok(!html.includes('class="marketing-glossary"'));
+assert.ok(!html.includes('about-disclaimer'));
+assert.match(app,/Object\.freeze\(\['home','create','shortlist','history'\]\)/);
+assert.ok(!templates.includes('NỘI DUNG MẪU'));
+assert.ok(!templates.includes('Nội dung MẪU'));
+assert.match(templates,/field\.dataset\.templateDraft='1'/);
+assert.match(app,/field\?\.dataset\.templateDraft==='1'/);
+assert.ok(!media.includes('Đã bổ sung ${count} ảnh\/video'));
+assert.match(media,/MGApplyExternalSources/);
+assert.ok(!server.includes("'/source-settings.js'"));
+assert.ok(!server.includes("'/source-settings.css'"));
+for(const id of ['resultsSection','ideasGrid','freeMediaStatus','browserUseMediaStatus','progressPanel'])assert.ok(html.includes(`id="${id}"`),id);
+console.log('PASS v5.4 UI cleanup without affecting AI/media processing.');

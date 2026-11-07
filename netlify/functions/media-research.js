@@ -215,6 +215,49 @@ async function fetchArticleImage(source,fetchImpl,options={}){
   finally{clearTimeout(timer);}
 }
 
+// Grounded search sometimes returns plain URLs in model text but no chunks.
+// We NEVER display those URLs until their actual page responds with relevant metadata.
+function extractTextUrls(text){
+  const hits=String(text||'').match(/https:\/\/[^\s<>"'`\)\]\}]+/g)||[];
+  return [...new Set(hits.map(raw=>safeHttpsUrl(raw.replace(/[.,;!?]+$/,''))).filter(Boolean))].slice(0,8);
+}
+function pageTitle(html){
+  const meta=(String(html||'').match(/<meta\b[^>]*>/gi)||[]);
+  for(const tag of meta){const a=tagAttrs(tag);if((a.property||a.name||'').toLowerCase()==='og:title'&&a.content)return plain(a.content,200);}
+  const title=String(html||'').match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+  return title?plain(decodeEntities(title[1]).replace(/<[^>]*>/g,''),200):'';
+}
+async function verifiedArticleFromText(url,product,fetchImpl,options={}){
+  let current=safeHttpsUrl(url);if(!current)return null;
+  const dnsLookup=options.dnsLookup||lookup;
+  const abort=new AbortController(),timeout=setTimeout(()=>abort.abort(),4600);
+  try{
+    for(let hop=0;hop<3;hop++){
+      const host=new URL(current).hostname;
+      if(SOCIAL_HOSTS.some(x=>domainMatch(host,x))||domainMatch(host,'google.com')||domainMatch(host,'vertexaisearch.cloud.google.com'))return null;
+      const ips=await dnsLookup(host,{all:true});
+      if(!Array.isArray(ips)||!ips.length||ips.some(x=>isPrivateAddress(x.address)))return null;
+      const res=await fetchImpl(current,{method:'GET',redirect:'manual',signal:abort.signal,headers:{'Accept':'text/html,application/xhtml+xml','User-Agent':'Mozilla/5.0 (compatible; MarketGeniusAI/2.4)'}});
+      if(res.status>=300&&res.status<400){
+        const next=absolutizeImage(res.headers?.get?.('location'),current);
+        if(res.body?.cancel)await res.body.cancel().catch(()=>{});
+        if(!next)return null;current=next;continue;
+      }
+      if(!res.ok||!String(res.headers?.get?.('content-type')||'').includes('text/html')||Number(res.headers?.get?.('content-length'))>350000)return null;
+      let html='';
+      if(res.body?.getReader){
+        const reader=res.body.getReader();const decoder=new TextDecoder();let bytes=0;
+        while(bytes<120000){const part=await reader.read();if(part.done)break;bytes+=part.value.byteLength;html+=decoder.decode(part.value,{stream:true});if(html.includes('</head>'))break;}
+        await reader.cancel().catch(()=>{});
+      }else html=String(await res.text()).slice(0,120000);
+      const title=pageTitle(html);
+      if(!title||!possibleProductImage(product,title))return null;
+      return {title,url:current,source:new URL(current).hostname,
+        image:extractImageFromHtml(html,current,product)};
+    }
+    return null;
+  }catch{return null;}finally{clearTimeout(timeout);}
+}
 // A real Google Image Search result requires an image-capable Gemini model.
 // Text-only Gemini grounding only returns webpage chunks; querying more pages
 // does not change that. Uses the EXISTING site Gemini key, not a visitor key.
@@ -252,21 +295,21 @@ async function googleImageSearch(product,key,fetchImpl,options={}){
 }
 // Optional structured image search for hosting owners who need more predictable
 // coverage than public web/Creative Commons. The key never reaches the browser.
-async function serperImageSearch(product,fetchImpl,key){
+async function serperImageSearch(product,fetchImpl,key,searchQuery=product+' sản phẩm'){
   if(!key)return [];
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),8000);
   try{
     const res=await fetchImpl('https://google.serper.dev/images',{
       method:'POST',signal:controller.signal,
       headers:{'X-API-KEY':key,'Content-Type':'application/json'},
-      body:JSON.stringify({q:product+' sản phẩm',gl:'vn',hl:'vi',num:8})
+      body:JSON.stringify({q:plain(searchQuery,220),gl:'vn',hl:'vi',num:10})
     });
     if(!res.ok)return [];
     const data=await res.json();
     return (Array.isArray(data.images)?data.images:[]).slice(0,8).map(x=>({
       url:safeHttpsUrl(x.imageUrl||x.thumbnailUrl),sourceUrl:safeHttpsUrl(x.link),
       sourceTitle:plain(x.title||product),label:'Ảnh tìm kiếm sản phẩm'
-    })).filter(x=>x.url);
+    })).filter(x=>x.url&&x.sourceUrl&&possibleProductImage(product,x.sourceTitle));
   }catch{return [];}
   finally{clearTimeout(timer);}
 }
@@ -380,9 +423,15 @@ async function collectProductMedia(product,model,key,options={}){
     !domainMatch(new URL(x.url).hostname,'google.com')&&
     possibleProductImage(product,x.title))
     .map(x=>({title:x.title,url:x.url,source:domainMatch(new URL(x.url).hostname,'vertexaisearch.cloud.google.com')?'Liên kết nguồn do Google Search cung cấp':new URL(x.url).hostname}))).slice(0,4);
+  // No chunks? Verify URL text against a real HTML page before labeling as a source.
+  // Limit to four candidates, in parallel, so this never waits indefinitely.
+  const verified=articles.length?[]:(await Promise.all(good.flatMap(x=>extractTextUrls(x.modelText))
+    .filter(url=>!isTikTokVideo(url)).slice(0,4).map(url=>verifiedArticleFromText(url,product,fetchImpl,options)))).filter(Boolean);
+  articles.push(...dedupeByUrl(verified.map(({title,url,source})=>({title,url,source}))).slice(0,4));
   const imageCandidates=dedupeByUrl([
     ...serperImages,...geminiImages,
-    ...images.map(x=>({url:x.url,sourceUrl:x.sourceUrl,sourceTitle:x.title,label:'Ảnh sản phẩm từ kết quả tìm kiếm'}))
+    ...images.map(x=>({url:x.url,sourceUrl:x.sourceUrl,sourceTitle:x.title,label:'Ảnh sản phẩm từ kết quả tìm kiếm'})),
+    ...verified.filter(x=>x.image).map(x=>({url:x.image,sourceUrl:x.url,sourceTitle:x.title,label:'Ảnh từ bài viết đã xác minh'}))
   ].filter(x=>x.url));
   const groundedPages=sources.filter(x=>x.kind==='web'&&!SOCIAL_HOSTS.some(h=>domainMatch(new URL(x.url).hostname,h)));
   const likelyPages=[...groundedPages].sort((a,b)=>Number(possibleProductImage(product,b.title))-Number(possibleProductImage(product,a.title)));
@@ -402,7 +451,7 @@ async function collectProductMedia(product,model,key,options={}){
   const suggestions=[...good.map(x=>x.suggestion),geminiImages.searchSuggestion].filter(Boolean).slice(0,3);
   const count=articles.length+videos.length+(productImage?1:0);
   const note=productImage?'Đã tìm được URL ảnh tham khảo. Bấm ảnh để xem trang nguồn.':
-    'Chưa nhận được URL ảnh trực tiếp từ dịch vụ tìm kiếm. Có thể do model Gemini hiện tại không hỗ trợ Image Search, hoặc các trang nguồn chặn truy cập.';
+    'Chưa tìm được ảnh trực tiếp có thể xác minh. Bạn có thể thêm ảnh sản phẩm hoặc đường dẫn nguồn từ thiết bị của mình.';
   const output={status:count?'partial':'unavailable',product,image:productImage,images:finalImages,videos,articles,
     searchLinks:googleLinks(product),suggestions,note,
     diagnostic:{imageCount:finalImages.length,groundingImageCount:geminiImages.length,providerImageCount:serperImages.length,
@@ -414,4 +463,106 @@ async function collectProductMedia(product,model,key,options={}){
   return output;
 }
 
-module.exports={collectProductMedia,emptyResources,safeHttpsUrl,relevant,extractImageFromHtml,googleLinks,googleImageSearch,serperImageSearch,fetchArticleImage,followGroundedRedirect};
+
+// Stage 4.9 — per-campaign image research. Search terms are derived from each
+// AI campaign's channel, hook and concept, but the *product* name is required
+// in every accepted photo title. Sources must be actual HTTPS URLs from a
+// provider; never interpolate query text into a fabricated image URL.
+const CAMPAIGN_IMAGE_CACHE=new Map();
+function campaignAngle(idea){
+  const text=plain([idea.title,idea.channel,idea.concept,idea.hook,idea.strategy].join(' ').toLowerCase(),1200);
+  if(/unbox|mở hộp|đập hộp|trải nghiệm|review|đánh giá|koc|ugc|khách hàng thật/.test(text))return {name:'review',query:'review trải nghiệm thực tế',tags:['review','trải nghiệm','unbox','mở hộp','hands on']};
+  if(/hướng dẫn|cách dùng|cách sử dụng|giải thích|giáo dục|tips|mẹo|tutorial/.test(text))return {name:'howto',query:'hướng dẫn sử dụng thực tế',tags:['hướng dẫn','sử dụng','tutorial','cách dùng']};
+  if(/so sánh|đối chiếu|trước sau|ưu nhược|comparison|vs\b/.test(text))return {name:'compare',query:'so sánh chi tiết sản phẩm',tags:['so sánh','comparison','compare']};
+  if(/giảm giá|khuyến mãi|flash sale|combo|ưu đãi|deal|voucher|sale/.test(text))return {name:'promotion',query:'sản phẩm ưu đãi khuyến mãi',tags:['ưu đãi','giảm giá','deal','sale','combo']};
+  if(/lifestyle|phong cách|câu chuyện|hằng ngày|đời sống|cộng đồng|story/.test(text))return {name:'lifestyle',query:'phong cách sống sử dụng thực tế',tags:['lifestyle','đời sống','phong cách','người dùng']};
+  if(/ra mắt|launch|mới|teaser|giới thiệu/.test(text))return {name:'launch',query:'ảnh giới thiệu chi tiết',tags:['giới thiệu','mới','chi tiết','launch']};
+  return {name:'product',query:'ảnh chi tiết sản phẩm',tags:['sản phẩm','chi tiết','product']};
+}
+async function openverseCampaignPhotos(product,query,fetchImpl){
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),4500);
+  try{
+    const u='https://api.openverse.org/v1/images/?q='+encodeURIComponent(query)+'&page_size=20';
+    const res=await fetchImpl(u,{method:'GET',redirect:'error',signal:controller.signal,headers:{Accept:'application/json','User-Agent':'MarketGeniusAI/2.4.9 (campaign image research)'}});
+    if(!res.ok)return [];
+    const body=await res.json();
+    return (Array.isArray(body.results)?body.results:[]).map(i=>({
+      url:safeHttpsUrl(i.thumbnail||i.url),sourceUrl:safeHttpsUrl(i.foreign_landing_url),
+      sourceTitle:plain(i.title),label:'Ảnh tham khảo · Openverse',license:plain(i.license,40)
+    })).filter(i=>i.url&&i.sourceUrl&&possibleProductImage(product,i.sourceTitle)).slice(0,10);
+  }catch{return [];}finally{clearTimeout(timer);}
+}
+async function commonsCampaignPhotos(product,query,fetchImpl){
+  const qs=new URLSearchParams({action:'query',generator:'search',gsrnamespace:'6',gsrsearch:query,
+    gsrlimit:'20',prop:'imageinfo',iiprop:'url',iiurlwidth:'720',format:'json'});
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),4500);
+  try{
+    const res=await fetchImpl('https://commons.wikimedia.org/w/api.php?'+qs,{method:'GET',redirect:'error',signal:controller.signal,headers:{Accept:'application/json'}});
+    if(!res.ok)return [];
+    const body=await res.json();
+    return Object.values(body?.query?.pages||{}).map(p=>({
+      url:safeHttpsUrl(p.imageinfo?.[0]?.thumburl||p.imageinfo?.[0]?.url),
+      sourceUrl:safeHttpsUrl(p.imageinfo?.[0]?.descriptionurl),sourceTitle:plain(p.title),
+      label:'Ảnh tham khảo · Wikimedia Commons'
+    })).filter(i=>i.url&&i.sourceUrl&&possibleProductImage(product,i.sourceTitle)).slice(0,10);
+  }catch{return [];}finally{clearTimeout(timer);}
+}
+function imageCandidate(product,photo){
+  return photo&&safeHttpsUrl(photo.url)&&safeHttpsUrl(photo.sourceUrl)&&
+    possibleProductImage(product,photo.sourceTitle||product)
+      ? {...photo,url:safeHttpsUrl(photo.url),sourceUrl:safeHttpsUrl(photo.sourceUrl)} : null;
+}
+function rankCampaignPhoto(photo,angle,own){
+  const title=plain(photo.sourceTitle,220).toLocaleLowerCase('vi');
+  const hit=angle.tags.reduce((n,k)=>n+(title.includes(k)?1:0),0);
+  return (own?60:0)+hit*25+(photo.license?2:0);
+}
+async function collectCampaignMedia(product,ideas,base,options={}){
+  const fetchImpl=options.fetch||globalThis.fetch;
+  const key=options.imageSearchKey??process.env.SERPER_API_KEY??'';
+  const angles=ideas.map(campaignAngle);
+  const sharedPhotos=dedupeByUrl((base?.images||[]).concat(base?.image?[base.image]:[])
+    .map(i=>imageCandidate(product,i)).filter(Boolean));
+  const cacheKey=normalizeProduct(product).toLocaleLowerCase('vi')+'|'+angles.map(a=>a.name).join(',')+'|'+Boolean(key);
+  let perIdea;
+  const cached=!options.fetch&&CAMPAIGN_IMAGE_CACHE.get(cacheKey);
+  if(cached&&Date.now()-cached.time<CACHE_MS)perIdea=cached.items;
+  else{
+    perIdea=await Promise.all(angles.map(async angle=>{
+      const query=normalizeProduct(product)+' '+angle.query;
+      // Image-index provider is optional; two public licensed-image indexes
+      // are queried without another API key. All requests have timeouts.
+      const [serper,openverse,commons]=await Promise.all([
+        serperImageSearch(product,fetchImpl,key,query),
+        openverseCampaignPhotos(product,query,fetchImpl),
+        commonsCampaignPhotos(product,query,fetchImpl)
+      ]);
+      return dedupeByUrl([...serper,...openverse,...commons].map(i=>imageCandidate(product,i)).filter(Boolean));
+    }));
+    if(!options.fetch){
+      if(CAMPAIGN_IMAGE_CACHE.size>=35)CAMPAIGN_IMAGE_CACHE.delete(CAMPAIGN_IMAGE_CACHE.keys().next().value);
+      CAMPAIGN_IMAGE_CACHE.set(cacheKey,{time:Date.now(),items:perIdea});
+    }
+  }
+  const used=new Set();
+  return ideas.map((idea,index)=>{
+    const angle=angles[index];
+    const own=perIdea[index]||[];
+    const found=dedupeByUrl([...own,...sharedPhotos]);
+    found.sort((a,b)=>rankCampaignPhoto(b,angle,own.some(x=>x.url===b.url))-
+      rankCampaignPhoto(a,angle,own.some(x=>x.url===a.url)));
+    // A single product photo must NOT silently repeat in all five campaigns.
+    const image=found.find(p=>!used.has(p.url))||null;
+    if(image)used.add(image.url);
+    return {
+      ...(base||emptyResources(product)),
+      image, images:image?[image]:[],
+      imageApproach:angle.name,
+      note:image?'AI đã tự tìm ảnh tham khảo cho hướng triển khai này. Cần kiểm tra quyền sử dụng trước khi đăng.':
+        'Chưa có ảnh công khai xác minh được cho hướng triển khai này; không dùng ảnh sai sản phẩm.',
+      diagnostic:{...(base?.diagnostic||{}),campaignImageFound:Boolean(image)}
+    };
+  });
+}
+
+module.exports={collectCampaignMedia,campaignAngle,collectProductMedia,emptyResources,safeHttpsUrl,relevant,extractImageFromHtml,googleLinks,googleImageSearch,serperImageSearch,fetchArticleImage,followGroundedRedirect,extractTextUrls,verifiedArticleFromText};

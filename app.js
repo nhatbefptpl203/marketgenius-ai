@@ -137,7 +137,7 @@ async function loadGuestConfiguration(){
     guestReady=Boolean(data.ok && data.guestAvailable && data.turnstileSiteKey);
     guestModel=guestReady?String(data.guestModel||''):'';
     guestSiteKey=guestReady?String(data.turnstileSiteKey||''):'';
-    setGuestStatus(guestReady?`Đã có Gemini (${guestModel}). Xác minh một lần để tạo ý tưởng thật.`:'AI có sẵn chưa khả dụng hoặc đã hết hạn mức. Bạn có thể dùng Demo.',guestReady?'ready':'error');
+    setGuestStatus(guestReady?`Đã có Gemini (${guestModel}). Xác minh một lần để tạo ý tưởng thật.`:'AI có sẵn chưa được cấu hình hoặc tạm thời không khả dụng. Bạn có thể dùng Demo.',guestReady?'ready':'error');
     if(guestReady)initGuestTurnstile();
   } catch {
     guestReady=false;
@@ -241,7 +241,7 @@ function updateCounters() {
   // The home statistic will be removed in stage 4; tolerate either markup meanwhile.
   const dashboardCount=$('#dashboardSavedCount');
   if(dashboardCount) dashboardCount.textContent=String(count).padStart(2,'0');
-  $('#shortlistDescription').textContent=`${count} ý tưởng được lưu trên trình duyệt này.`;
+  $('#shortlistDescription').textContent=`Đang lưu ${count} ý tưởng`;
   $('#copyAllBtn').disabled=count===0;
 }
 function isAdvancedBrief() { return document.querySelector('input[name="briefMode"]:checked')?.value === 'advanced'; }
@@ -353,7 +353,7 @@ function normalizeResearchSources(raw){
   function safeUrl(value){try{const u=new URL(String(value||''));return u.protocol==='https:'&&u.href.length<=3000?u.href:'';}catch{return '';}}
   function text(v,n=200){return String(v??'').slice(0,n);}
   const normalizeImage=x=>x&&safeUrl(x.url)?{
-    url:safeUrl(x.url),sourceUrl:safeUrl(x.sourceUrl)||safeUrl(x.url),proxyUrl:/^\/api\/image\?u=[A-Za-z0-9_%&=.-]+$/.test(String(x.proxyUrl||''))?x.proxyUrl:'',sourceTitle:text(x.sourceTitle),label:text(x.label),license:text(x.license,40)}:null;
+    url:safeUrl(x.url),sourceUrl:safeUrl(x.sourceUrl)||safeUrl(x.url),proxyUrl:/^(?:\/api\/image\?u=[A-Za-z0-9_%&=.-]+|\/api\/free-media\/image\/[a-f0-9]{64})$/.test(String(x.proxyUrl||''))?x.proxyUrl:'',sourceTitle:text(x.sourceTitle),label:text(x.label),license:text(x.license,40)}:null;
   const image=normalizeImage(raw.image);
   const images=Array.isArray(raw.images)?raw.images.map(normalizeImage).filter(Boolean).slice(0,5):[];
   if(image&&!images.some(x=>x.url===image.url))images.unshift(image);
@@ -399,8 +399,7 @@ function renderCard(idea, savedView = false) {
   return `<article class="idea-card">
     <div class="idea-card-top"><span class="idea-number">Ý TƯỞNG ${String(idea.number || 1).padStart(2,'0')}</span><span class="idea-channel">${esc(idea.channel)}</span></div>
     <h3>${esc(idea.title)}</h3>${savedView&&idea.source==='ai'?'<p class="history-source">AI cá nhân (bản cũ)</p>':''}<p class="idea-description">${esc(idea.concept)}</p>
-    <div class="idea-detail"><strong>Điểm nhấn chiến dịch</strong><p>${esc(idea.hook || 'Chiến dịch được cá nhân hóa cho sản phẩm của bạn.')}</p></div>
-    <div class="idea-timeline-header"><strong>Timeline triển khai</strong><span>04 tuần</span></div>
+    <div class="idea-detail"><p>${esc(idea.hook || 'Chiến dịch được cá nhân hóa cho sản phẩm của bạn.')}</p></div>
     <div class="week-pills">${weekSummary}</div>
     <div class="idea-footer">
       ${!savedView?`<button type="button" class="idea-save ${saved ? 'saved':''}" data-action="save" data-id="${safeId}">${icon(saved ? 'check':'bookmark')} ${saved?'Đã lưu':'Lưu shortlist'}</button>`:''}
@@ -504,8 +503,72 @@ function makeDemoIdeas(brief) {
     number:i+1
   })));
 }
+// Visual-only loading preview. Does not change brief, API payloads, results or storage.
+// A private interval is created per active request and cleared on every exit path.
+const mgLoadingPreview = (() => {
+  const statuses = [
+    'Đang phân tích dữ liệu ngành hàng & mục tiêu chiến dịch...',
+    'AI đang phác thảo 5 hướng tiếp cận & KPI tham khảo...',
+    'Đang xây dựng lịch trình hành động chi tiết cho 4 tuần...',
+    'Đang tìm kiếm ảnh tư liệu & hoàn thiện bản kế hoạch...'
+  ];
+  let intervalId = null;
+  let statusIndex = 0;
+  let active = false;
+
+  function skeletonCard() {
+    return `<article class="mg-skeleton-card" aria-hidden="true">
+      <div class="mg-skeleton-card-top">
+        <span class="mg-skeleton mg-skeleton-overline"></span>
+        <span class="mg-skeleton mg-skeleton-badge"></span>
+      </div>
+      <div class="mg-skeleton mg-skeleton-title"></div>
+      <div class="mg-skeleton mg-skeleton-description"></div>
+      <div class="mg-skeleton mg-skeleton-description short"></div>
+      <div class="mg-skeleton mg-skeleton-highlight"></div>
+      <div class="mg-skeleton-timeline">
+        ${Array.from({length:4}, () => '<div class="mg-skeleton mg-skeleton-week"></div>').join('')}
+      </div>
+    </article>`;
+  }
+
+  function stop(clearPreview = false) {
+    active = false;
+    if (intervalId !== null) { clearInterval(intervalId); intervalId = null; }
+    const section = $('#resultsSection');
+    if (section) section.classList.remove('mg-results-loading');
+    if (clearPreview) {
+      const grid = $('#ideasGrid');
+      if (grid?.querySelector('.mg-skeleton-card')) grid.replaceChildren();
+    }
+  }
+
+  function start() {
+    stop();
+    const section = $('#resultsSection');
+    const grid = $('#ideasGrid');
+    if (!section || !grid) return;
+    active = true;
+    statusIndex = 0;
+    section.classList.add('mg-results-loading');
+    grid.innerHTML = `<div class="mg-loading-status" role="status" aria-live="polite" aria-atomic="true">
+      <span class="mg-loading-pulse" aria-hidden="true"></span>
+      <span class="mg-loading-status-text">${statuses[0]}</span>
+    </div>${skeletonCard()}${skeletonCard()}`;
+    const message = grid.querySelector('.mg-loading-status-text');
+    intervalId = setInterval(() => {
+      if (!active || !message?.isConnected) { stop(); return; }
+      statusIndex = (statusIndex + 1) % statuses.length;
+      message.textContent = statuses[statusIndex];
+    }, 2500);
+  }
+  return { start, stop };
+})();
+
 function busy(active) {
   state.loading = active;
+  if (active) mgLoadingPreview.start();
+  else mgLoadingPreview.stop();
   $('#generateBtn').disabled = active || !guestReady;
   $('#demoBtn').disabled = active;
   $('#regenerateBtn').disabled = active;
@@ -562,12 +625,18 @@ async function generate(useDemo = false) {
     if (!guestReady) {notify('AI có sẵn chưa khả dụng. Bạn có thể dùng Demo ngay.','error');return;}
     if (!guestToken) {notify('Hãy hoàn thành xác minh bảo vệ trước khi tạo.','error');$('#apiPanel').scrollIntoView({behavior:'smooth',block:'start'});return;}
   }
+  window.MGCloudMediaTicket='';
+  window.MGFreeMediaTicket='';
+  window.MGFreeMedia?.stop?.();
+  // A new generation supersedes any previous paid media lookup.
+  window.MGBrowserUseMedia?.stop?.().catch(()=>{});
+  const cloudPanel=document.getElementById('browserUseMediaStatus');
+  if(cloudPanel)cloudPanel.hidden=true;
   const previousBrief = state.brief;
   state.brief = brief;
   busy(true, useDemo);
   $('#resultsSection').classList.remove('hidden');
   $('#resultsSubtitle').textContent = useDemo ? 'Đang chuẩn bị 5 hoạt động mẫu...' : 'Đang tạo 5 chiến dịch, mỗi chiến dịch có kế hoạch triển khai 4 tuần...';
-  $('#ideasGrid').innerHTML = '<div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>';
   $('#resultsSection').scrollIntoView({behavior:'smooth',block:'start'});
   try {
     let ideas;
@@ -577,8 +646,11 @@ async function generate(useDemo = false) {
     } else {
       const data=await apiRequest({action:'guest-generate',brief,turnstileToken:guestToken});
       ideas=normalizeIdeas(data.ideas);
+      window.MGCloudMediaTicket=typeof data.mediaTicket==='string'?data.mediaTicket:'';
+      window.MGFreeMediaTicket=typeof data.freeMediaTicket==='string'?data.freeMediaTicket:'';
       setGuestStatus('AI có sẵn đã tạo thành công.','ready');
     }
+    mgLoadingPreview.stop();
     state.ideas = ideas;state.source=useDemo?'demo':'guest';renderResults();
     if (!useDemo && window.MGProgress) await window.MGProgress.complete();
     notify(useDemo?'Đã tạo 5 chiến dịch DEMO (không gọi AI).':'AI đã tạo thành công 5 chiến dịch!');
@@ -592,9 +664,8 @@ async function generate(useDemo = false) {
       $('#resultsSection').classList.add('hidden');
       state.brief = previousBrief;
     }
-    if(error.code==='guest_site_limit'){guestReady=false;refreshAiMode();setGuestStatus('AI có sẵn đã hết hạn mức. Bạn có thể dùng Demo.','error');}
     notify(error.message||'Đã xảy ra lỗi khi tạo ý tưởng. Brief đã được giữ nguyên trên form.','error');
-  } finally { if(!useDemo)resetGuestChallenge(); window.MGProgress?.stop(); busy(false); }
+  } finally { mgLoadingPreview.stop(); if(!useDemo)resetGuestChallenge(); window.MGProgress?.stop(); busy(false); }
 }
 
 document.addEventListener('click',async (event)=>{
@@ -624,6 +695,7 @@ $('#promotionType').addEventListener('change',()=>{ $('#promotionLimit').value='
 $('#customerData').addEventListener('change',refreshCustomerDataFields);
 refreshBriefMode();
 $('#campaignForm').addEventListener('submit',event=>{event.preventDefault();generate(false);});
+$('#cancelGenerationBtn')?.addEventListener('click', () => mgLoadingPreview.stop(true));
 $('#demoBtn').addEventListener('click',()=>generate(true));
 $('#regenerateBtn').addEventListener('click',()=>generate(state.source==='demo'));
 $('#copyAllBtn').addEventListener('click',()=>{

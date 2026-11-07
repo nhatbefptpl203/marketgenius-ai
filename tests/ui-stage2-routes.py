@@ -75,7 +75,7 @@ with sync_playwright() as p:
   page.wait_for_function("location.hash === '#home' && document.getElementById('homeView').classList.contains('active')")
   assert page.locator('#how-it-works .about-feature-grid article').count()==6
   assert page.locator('#how-it-works .about-steps > div').count()==4
-  assert page.locator('#how-it-works .about-disclaimer').count()==1
+  assert page.locator('#how-it-works .about-disclaimer').count()==0
   # CTA to guide remains on home and scrolls down.
   page.evaluate("changeView('create')")
   page.wait_for_function("location.hash === '#create' && document.getElementById('createView').classList.contains('active')",timeout=6000)
