@@ -2,8 +2,74 @@
 
 const STORAGE_KEY = 'marketgenius-shortlist-v1';
 const $ = (selector) => document.querySelector(selector);
+// Định dạng VNĐ khi nhập: 15000000 → 15.000.000, nhưng dữ liệu gửi AI vẫn là số nguyên.
+// Không định dạng trường phần trăm, số khách hàng hoặc dữ liệu mẫu.
+window.MGMoney = (() => {
+  const onlyDigits = value => String(value ?? '').replace(/\D/g, '');
+  function format(value) {
+    const digits = onlyDigits(value).replace(/^0+(?=\d)/, '');
+    return digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  }
+  function parse(value) {
+    const raw = String(value ?? '').trim();
+    if (!raw) return null;
+    // Chỉ chấp nhận chữ số và dấu phân cách hàng nghìn.
+    if (!/^[\d.,\s]+$/.test(raw)) return NaN;
+    const digits = onlyDigits(raw);
+    return digits ? Number(digits) : NaN;
+  }
+  function set(field, value) {
+    if (!field) return;
+    field.value = field.matches('[data-money]') ? format(value) : String(value ?? '');
+  }
+  function reformat(field) {
+    const caret = field.selectionStart ?? field.value.length;
+    const digitsBefore = onlyDigits(field.value.slice(0, caret)).length;
+    const result = format(field.value);
+    if (field.value !== result) field.value = result;
+    if (document.activeElement === field) {
+      let newPos = 0, found = 0;
+      if (digitsBefore > 0) {
+        newPos = result.length;
+        for (let i = 0; i < result.length; i++) {
+          if (/\d/.test(result[i]) && ++found === digitsBefore) {newPos = i + 1;break;}
+        }
+      }
+      field.setSelectionRange(newPos, newPos);
+    }
+  }
+  document.addEventListener('input', event => {
+    const target = event.target;
+    if (target instanceof HTMLInputElement && target.matches('[data-money]')) reformat(target);
+  });
+  // Backspace/Delete ngay sát dấu chấm sẽ xóa chữ số phù hợp, không bị mắc kẹt.
+  document.addEventListener('beforeinput', event => {
+    const input = event.target;
+    if (!(input instanceof HTMLInputElement) || !input.matches('[data-money]')) return;
+    if (!['deleteContentBackward','deleteContentForward'].includes(event.inputType)) return;
+    const start=input.selectionStart, end=input.selectionEnd;
+    if (start==null || start!==end) return;
+    const forward=event.inputType==='deleteContentForward';
+    const punctIndex=forward?start:start-1;
+    if (input.value[punctIndex]!=='.') return;
+    const chars=input.value.split('');
+    let digitPos=forward?punctIndex+1:punctIndex-1;
+    while(digitPos>=0 && digitPos<chars.length && !/\d/.test(chars[digitPos])) digitPos+=forward?1:-1;
+    if(digitPos<0 || digitPos>=chars.length)return;
+    event.preventDefault();
+    chars.splice(digitPos,1);
+    input.value=format(chars.join(''));
+    const before=onlyDigits(chars.slice(0,Math.min(digitPos,chars.length)).join('')).length;
+    let caret=0,count=0;
+    if(before>0){caret=input.value.length;for(let i=0;i<input.value.length;i++)if(/\d/.test(input.value[i])&&++count===before){caret=i+1;break;}}
+    input.setSelectionRange(caret,caret);
+    input.dispatchEvent(new Event('input',{bubbles:true}));
+  });
+  return {format,parse,set,reformat};
+})();
 const icons = {
-  sparkle: '<svg class="icon"><use href="#i-sparkle"/></svg>',
+  zap: '<svg class="icon"><use href="#i-zap"/></svg>',
+  target: '<svg class="icon"><use href="#i-target"/></svg>',
   bookmark: '<svg class="icon"><use href="#i-bookmark"/></svg>',
   check: '<svg class="icon"><use href="#i-check"/></svg>',
   eye: '<svg class="icon"><use href="#i-eye"/></svg>',
@@ -12,266 +78,74 @@ const icons = {
   rotate: '<svg class="icon"><use href="#i-rotate"/></svg>',
   close: '<svg class="icon"><use href="#i-close"/></svg>'
 };
-const state = { ideas: [], saved: loadSaved(), source: '', brief: null, loading: false, connected: false, view: 'create' };
+const state = { ideas: [], saved: loadSaved(), source: '', brief: null, loading: false, view: 'home' };
 
-// Không có danh sách model dựng sẵn: chỉ hiển thị model từ API Key đang nhập.
-// Danh sách chỉ được giữ trong bộ nhớ của tab, KHÔNG lưu API Key hoặc model vào localStorage.
-let modelListVersion = 0;
-let modelFetchTimer = null;
-let modelListLoading = false;
-let fetchedKeySignature = '';
-// Ứng viên chưa được xác minh KHÔNG xuất hiện trong menu.
-let candidateModels = [];
-let verifiedModels = [];
-let verifyRunning = false;
-let verifyCancel = false;
-const waitForNextProbe = ms => new Promise(resolve => setTimeout(resolve, ms));
-
-// Hai chế độ: API do người dùng nhập hoặc Gemini do chủ site cấu hình qua Netlify.
-// Không bao giờ lưu khóa của chủ site vào HTML, JS hoặc localStorage.
+// Chỉ cấu hình Gemini do website quản lý; khách không nhập khóa hay chọn model.
 let guestReady = false;
 let guestModel = '';
 let guestSiteKey = '';
 let guestToken = '';
 let guestWidgetId = null;
-function getAiMode(){ return document.querySelector('input[name="aiMode"]:checked')?.value || 'guest'; }
 function setGuestStatus(message, kind=''){
-  const node=$('#guestStatus'); node.textContent=message;
+  const node=$('#guestStatus');node.textContent=message;
   node.className=`guest-status ${kind==='ready'?'is-ready':kind==='error'?'is-error':''}`;
 }
 function refreshAiMode(){
-  const guest=getAiMode()==='guest';
-  $('#guestAiSettings').classList.toggle('hidden',!guest);
-  $('#personalAiSettings').classList.toggle('hidden',guest);
-  $('#aiFormNotice').textContent=guest
-    ? 'AI có sẵn: tạo ý tưởng thật không cần API Key. Bạn cũng có thể thử dữ liệu Demo.'
-    : 'AI cá nhân: nhập API Key, xác minh model rồi tạo chiến dịch. Demo vẫn miễn phí.';
-  $('#generateBtn').disabled=state.loading || (guest && !guestReady);
-  $('#modeBadge').classList.toggle('is-connected',guest ? guestReady : state.connected);
-  $('#modeBadge').innerHTML=`<span class="tiny-pulse"></span>${guest ? (guestReady?'AI có sẵn sàng':'AI có sẵn chưa cấu hình') : (state.connected?'AI đã kết nối':'Demo sẵn sàng')}`;
+  $('#generateBtn').disabled=state.loading || !guestReady;
+  $('#aiFormNotice').textContent='Gemini do website cung cấp · Không cần API Key. Demo không gọi AI và luôn hoạt động.';
+  const isDemo=state.source==='demo';
+  $('#modeBadge').classList.toggle('is-connected',guestReady && !isDemo);
+  $('#modeBadge').innerHTML=`<span class="tiny-pulse"></span>${isDemo?'Demo':guestReady?'AI sẵn sàng':'AI chưa khả dụng'}`;
+}
+let turnstileScriptPending=false;
+function loadTurnstileScript(){
+  if(turnstileScriptPending||window.turnstile)return;
+  turnstileScriptPending=true;
+  const script=document.createElement('script');
+  script.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+  script.async=true;script.defer=true;
+  script.onerror=()=>{turnstileScriptPending=false;setGuestStatus('Không tải được xác minh. Có thể dùng Demo.','error');};
+  document.head.appendChild(script);
 }
 async function initGuestTurnstile(tries=0){
-  if(!guestReady || !guestSiteKey || guestWidgetId!==null) return;
+  if(!guestReady || !guestSiteKey || guestWidgetId!==null || !$('#createView').classList.contains('active')) return;
   if(!window.turnstile){
-    if(tries>=40){setGuestStatus('Không tải được bước xác minh. Hãy kiểm tra kết nối hoặc dùng AI cá nhân.','error');return;}
+    loadTurnstileScript();
+    if(tries>=40){setGuestStatus('Không tải được bước xác minh. Hãy kiểm tra kết nối hoặc dùng Demo.','error');return;}
     setTimeout(()=>initGuestTurnstile(tries+1),250);return;
   }
   try {
     guestWidgetId=window.turnstile.render('#guestTurnstile',{
-      sitekey:guestSiteKey,theme:'dark',size:'flexible',action:'guest_generate',
-      callback:(token)=>{guestToken=token;setGuestStatus('Đã xác minh. Bạn có thể tạo 5 chiến dịch bằng AI có sẵn.','ready');},
-      'expired-callback':()=>{guestToken='';setGuestStatus('Phiên xác minh đã hết hạn. Hãy xác minh lại để tiếp tục.');},
-      'error-callback':()=>{guestToken='';setGuestStatus('Không thể xác minh. Thử tải lại trang hoặc dùng AI cá nhân.','error');}
+      sitekey:guestSiteKey,theme:'light',size:'flexible',action:'guest_generate',
+      callback:(token)=>{guestToken=token;$('#guestTurnstile').classList.add('mg-verified');setGuestStatus('Đã xác minh. Bạn có thể tạo 5 chiến dịch bằng AI có sẵn.','ready');},
+      'expired-callback':()=>{guestToken='';$('#guestTurnstile').classList.remove('mg-verified');setGuestStatus('Phiên xác minh đã hết hạn. Hãy xác minh lại để tiếp tục.');},
+      'error-callback':()=>{guestToken='';$('#guestTurnstile').classList.remove('mg-verified');setGuestStatus('Không thể xác minh. Thử tải lại trang hoặc dùng Demo.','error');}
     });
   } catch {setGuestStatus('Không thể khởi tạo xác minh Turnstile.','error');}
 }
 function resetGuestChallenge(){
   guestToken='';
+  $('#guestTurnstile').classList.remove('mg-verified');
   if(guestWidgetId!==null && window.turnstile)try{window.turnstile.reset(guestWidgetId);}catch{}
   if(guestReady)setGuestStatus('Vui lòng xác minh lại trước lượt tạo ý tưởng tiếp theo.');
 }
 async function loadGuestConfiguration(){
   try {
     const response=await fetch('/api/ai',{method:'GET',cache:'no-store'});
-    if(!(response.headers.get('content-type')||'').includes('application/json'))throw Error('Không thấy cấu hình từ Netlify Functions.');
-    const data=await response.json();
+    const data=await readAiJsonResponse(response);
+    if(!response.ok || !data.ok)throw new Error(`Không tải được cấu hình AI có sẵn (HTTP ${response.status}).`);
     guestReady=Boolean(data.ok && data.guestAvailable && data.turnstileSiteKey);
     guestModel=guestReady?String(data.guestModel||''):'';
     guestSiteKey=guestReady?String(data.turnstileSiteKey||''):'';
-    setGuestStatus(guestReady?`Đã có Gemini (${guestModel}). Xác minh một lần để tạo ý tưởng thật.`:'AI có sẵn chưa được chủ website bật trên Netlify. Bạn có thể dùng API cá nhân hoặc thử Demo.',guestReady?'ready':'error');
+    setGuestStatus(guestReady?`Đã có Gemini (${guestModel}). Xác minh một lần để tạo ý tưởng thật.`:'AI có sẵn chưa khả dụng hoặc đã hết hạn mức. Bạn có thể dùng Demo.',guestReady?'ready':'error');
     if(guestReady)initGuestTurnstile();
   } catch {
     guestReady=false;
-    setGuestStatus('Không lấy được cấu hình AI có sẵn. Thử lại sau hoặc chọn AI cá nhân.','error');
+    setGuestStatus('Không lấy được cấu hình AI có sẵn. Thử lại sau hoặc dùng Demo.','error');
   }
   refreshAiMode();
 }
 
-
-
-function selectedModel() {
-  return $('#model').disabled ? '' : $('#model').value;
-}
-function setGuide(provider) {
-  $('#geminiGuide').classList.toggle('hidden', provider !== 'gemini');
-  $('#openaiGuide').classList.toggle('hidden', provider !== 'openai');
-  $('#apiGuideHeading').textContent = provider === 'gemini' ? 'Hướng dẫn lấy Gemini API Key' : 'Hướng dẫn lấy OpenAI API Key';
-  $('#apiGuide').open = true;
-}
-function clearModelPicker(message = 'Nhập API Key để hiện model') {
-  const sel = $('#model');
-  sel.replaceChildren(new Option(message, ''));
-  sel.disabled = true;
-  $('#modelCount').textContent = '0 model';
-  $('#modelHint').textContent = 'Chỉ model đã thử tạo nội dung thành công mới xuất hiện tại đây.';
-}
-function populateModels(models) {
-  const sel = $('#model');
-  const ids = [...new Set(models)].filter(id => typeof id === 'string' && id);
-  const previous = sel.value;
-  sel.replaceChildren();
-  if (!ids.length) {
-    clearModelPicker('Không có model tạo văn bản phù hợp');
-    return;
-  }
-  for (const id of ids) sel.add(new Option(id, id));
-  sel.disabled = false;
-  if (ids.includes(previous)) sel.value = previous;
-  $('#modelCount').textContent = `${ids.length} đã xác minh`;
-  $('#modelHint').textContent = 'Chỉ có model gọi AI thật thành công lúc kiểm tra. Quota có thể thay đổi sau đó.';
-}
-function invalidateModels(message) {
-  modelListVersion++;
-  clearTimeout(modelFetchTimer);
-  modelFetchTimer = null;
-  modelListLoading = false;
-  verifyCancel = true;
-  verifyRunning = false;
-  candidateModels = [];
-  verifiedModels = [];
-  fetchedKeySignature = '';
-  $('#verifyModelsBtn').disabled = true;
-  $('#stopVerifyBtn').hidden = true;
-  $('#verifyProgress').hidden = true;
-  clearModelPicker();
-  const available = $('#apiKey').value.trim().length >= 8;
-  $('#loadModelsBtn').disabled = !available;
-  $('#loadModelsBtn').querySelector('span').textContent = 'Tải lại model từ API Key';
-  $('#modelListInfo').textContent = message || 'Dán API Key để tự động tải danh sách model.';
-  resetConnection();
-}
-function scheduleModelFetch() {
-  invalidateModels('Đang chờ nhập xong API Key để lấy danh sách model…');
-  if ($('#apiKey').value.trim().length < 8) {
-    $('#modelListInfo').textContent = 'Dán API Key vào ô trên, hệ thống sẽ tự động tải model.';
-    return;
-  }
-  modelFetchTimer = setTimeout(() => loadModelList(), 950);
-}
-async function loadModelList() {
-  const apiKey = $('#apiKey').value.trim();
-  const provider = $('#provider').value;
-  if (apiKey.length < 8) {
-    notify('Hãy nhập đầy đủ API Key trước khi tải danh sách model.', 'error');
-    $('#apiKey').focus();
-    return;
-  }
-  clearTimeout(modelFetchTimer);
-  modelFetchTimer = null;
-  const current = ++modelListVersion;
-  modelListLoading = true;
-  clearModelPicker('Đang tải model từ tài khoản…');
-  $('#loadModelsBtn').disabled = true;
-  $('#loadModelsBtn').querySelector('span').textContent = 'Đang lấy model…';
-  $('#modelCount').textContent = 'Đang tải';
-  $('#modelListInfo').textContent = 'Đang lấy ứng viên. Chưa xác minh quyền tạo nội dung và hạn mức…';
-  try {
-    const data = await apiRequest({action:'list-models', provider, apiKey});
-    // Nếu người dùng đổi nền tảng hoặc key khi request đang chạy, loại bỏ kết quả cũ.
-    if (current !== modelListVersion || provider !== $('#provider').value || apiKey !== $('#apiKey').value.trim()) return;
-    const models = Array.isArray(data.models) ? data.models : [];
-    candidateModels = models;
-    verifiedModels = [];
-    fetchedKeySignature = `${provider}:${apiKey}`;
-    clearModelPicker(models.length ? 'Nhấn “Xác minh model” để chọn' : 'Không có model tương thích');
-    $('#verifyModelsBtn').disabled = !models.length;
-    $('#modelListInfo').textContent = models.length
-      ? `Tìm thấy ${models.length} model ứng viên từ ${provider === 'gemini' ? 'Gemini' : 'OpenAI'}. Chưa xác nhận dùng được. Nhấn “Xác minh model”.`
-      : 'API Key được nhận diện nhưng không tìm thấy model tạo nội dung tương thích.';
-    notify(models.length ? `Tìm thấy ${models.length} model. Hãy xác minh trước khi dùng.` : 'Không có model phù hợp.', models.length ? 'success' : 'error');
-  } catch(error) {
-    if (current !== modelListVersion || apiKey !== $('#apiKey').value.trim()) return;
-    clearModelPicker('Không tải được model');
-    $('#modelListInfo').textContent = `Không tải được model: ${error.message}`;
-    notify(error.message, 'error');
-  } finally {
-    if (current === modelListVersion) {
-      modelListLoading = false;
-      $('#loadModelsBtn').disabled = state.loading || $('#apiKey').value.trim().length < 8;
-      $('#loadModelsBtn').querySelector('span').textContent = 'Tải lại model từ API Key';
-    }
-  }
-}
-
-
-// Xác minh từng model trên chính API Key của khách; KHÔNG thử đồng thời.
-// Nút dừng chỉ ngăn yêu cầu kế tiếp; lượt gọi đã bắt đầu có thể vẫn tính phí.
-function prioritizeModels(models) {
-  const rank = (id) => /flash-lite|nano|mini/i.test(id) ? 0 : /flash|gpt-4o|gpt-4\.1/i.test(id) ? 1 : /pro|gpt-5|gpt-6/i.test(id) ? 2 : 3;
-  return [...models].sort((a,b) => rank(a)-rank(b) || a.localeCompare(b));
-}
-function stopVerification() {
-  verifyCancel = true;
-  if (verifyRunning) $('#modelListInfo').textContent = 'Đang dừng sau yêu cầu hiện tại. Các model đã xác minh vẫn được giữ.';
-}
-async function verifyAvailableModels() {
-  if (verifyRunning || modelListLoading || state.loading || !candidateModels.length) return;
-  const provider = $('#provider').value;
-  const apiKey = $('#apiKey').value.trim();
-  const signature = `${provider}:${apiKey}`;
-  if (fetchedKeySignature !== signature) {
-    notify('Bạn đã đổi API Key. Hãy lấy lại danh sách model.', 'error'); return;
-  }
-  const pending = prioritizeModels(candidateModels.filter(id => !verifiedModels.includes(id)));
-  if (!pending.length) { notify('Các model ứng viên đã được xác minh.'); return; }
-  const message = `Kiểm tra ${pending.length} model bằng yêu cầu AI thật?\n\n- Áp dụng cho ${provider === 'gemini' ? 'Google Gemini' : 'OpenAI'} theo khóa của bạn.\n- Mỗi model tốn ít nhất một yêu cầu API, có thể phát sinh chi phí hoặc hết quota.\n- Có thể nhấn Dừng trong quá trình kiểm tra.`;
-  if (!window.confirm(message)) return;
-  const version = modelListVersion;
-  verifyCancel = false;
-  verifyRunning = true;
-  $('#verifyModelsBtn').disabled = true;
-  $('#loadModelsBtn').disabled = true;
-  $('#connectBtn').disabled = true;
-  $('#generateBtn').disabled = true;
-  $('#regenerateBtn').disabled = true;
-  $('#stopVerifyBtn').hidden = false;
-  $('#verifyProgress').hidden = false;
-  $('#verifyProgress').max = pending.length;
-  $('#verifyProgress').value = 0;
-  let confirmed=0, denied=0, limited=0, transient=0, checked=0, consecutive429=0;
-  try {
-    for (let i = 0; i < pending.length; i++) {
-      if (verifyCancel || version !== modelListVersion || signature !== `${$('#provider').value}:${$('#apiKey').value.trim()}`) break;
-      const model = pending[i];
-      $('#modelListInfo').textContent = `Đang xác minh ${i+1}/${pending.length}: ${model}. Đã xác minh ${verifiedModels.length} model.`;
-      try {
-        const result = await apiRequest({action:'probe-model',provider,apiKey,model});
-        if (verifyCancel || version !== modelListVersion || signature !== `${$('#provider').value}:${$('#apiKey').value.trim()}`) break;
-        if (!result.usable) throw new Error('Chưa có nội dung trả về');
-        if (!verifiedModels.includes(model)) verifiedModels.push(model);
-        populateModels(verifiedModels);
-        confirmed++;
-        consecutive429=0;
-      } catch (err) {
-        if (verifyCancel || version !== modelListVersion) break;
-        if ([400,401,402,403,404,422].includes(err.status)) { denied++; consecutive429=0; }
-        else if (err.status === 429) { limited++; consecutive429++; }
-        else { transient++; consecutive429=0; }
-      }
-      checked++;
-      $('#verifyProgress').value = checked;
-      // Tạm dừng khi quota chặn liên tiếp, không spam các model còn lại.
-      if (consecutive429 >= 3) {
-        $('#modelListInfo').textContent = 'Gặp 3 lỗi 429 liên tiếp, đã dừng sớm để tiết kiệm quota.';
-        break;
-      }
-      if (i < pending.length-1 && !verifyCancel) await waitForNextProbe(750);
-    }
-  } finally {
-    if (version === modelListVersion) {
-      verifyRunning = false;
-      $('#stopVerifyBtn').hidden = true;
-      $('#verifyProgress').hidden = true;
-      $('#verifyModelsBtn').disabled = !candidateModels.length || state.loading;
-      $('#loadModelsBtn').disabled = state.loading || $('#apiKey').value.trim().length < 8;
-      $('#connectBtn').disabled = state.loading;
-      $('#generateBtn').disabled = state.loading;
-      $('#regenerateBtn').disabled = state.loading;
-      $('#modelListInfo').textContent = `Đã kiểm tra ${checked}/${pending.length}: ${verifiedModels.length} model dùng được; ${denied} không hỗ trợ/từ chối; ${limited} giới hạn quota; ${transient} tạm lỗi. ${verifyCancel ? 'Đã dừng theo yêu cầu.' : 'Có thể xác minh lại model chưa thành công.'}`;
-      notify(verifiedModels.length ? `Có ${verifiedModels.length} model đã xác minh. Chỉ những model này được chọn.` : 'Chưa xác minh được model nào. Kiểm tra hạn mức API và thử lại sau.', verifiedModels.length?'success':'error');
-    }
-  }
-}
 
 
 function esc(value) {
@@ -282,9 +156,31 @@ function loadSaved() {
   try { const arr = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); return Array.isArray(arr) ? arr.filter(isValidIdea).slice(0,100) : []; }
   catch { return []; }
 }
+const HISTORY_STORAGE_KEY='marketgenius-campaign-history-v13';
+function lightweightIdea(idea){
+  const result=JSON.parse(JSON.stringify(idea));
+  if(result.resources){delete result.resources.suggestions;delete result.resources.diagnostic;}
+  return result;
+}
+function saveLocalWithHistoryEviction(key, data, onPrune){
+  for(let attempt=0;attempt<4;attempt++){
+    try{localStorage.setItem(key,JSON.stringify(typeof data==='function'?data():data));return true;}
+    catch(error){
+      if(attempt>=3)break;
+      if(onPrune && onPrune())continue;
+      let items=[];
+      try{items=JSON.parse(localStorage.getItem(HISTORY_STORAGE_KEY)||'[]');}catch{}
+      if(!Array.isArray(items)||!items.length)break;
+      items.pop();
+      try{localStorage.setItem(HISTORY_STORAGE_KEY,JSON.stringify(items));}
+      catch{break;}
+    }
+  }
+  notify('Bộ nhớ trình duyệt đã đầy, không thể lưu sau khi giảm tối đa 3 mục lịch sử.','error');
+  return false;
+}
 function saveStorage() {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state.saved)); return true; }
-  catch { notify('Không thể lưu dữ liệu trên trình duyệt. Hãy kiểm tra chế độ riêng tư hoặc dung lượng.', 'error'); return false; }
+  return saveLocalWithHistoryEviction(STORAGE_KEY,()=>state.saved.map(lightweightIdea),window.MGPruneOldestHistory);
 }
 function isValidIdea(item) { return item && typeof item.title === 'string' && typeof item.channel === 'string' && Array.isArray(item.timeline) && item.timeline.length === 4; }
 function icon(name) { return icons[name] || ''; }
@@ -295,52 +191,179 @@ function notify(message, type = 'success') {
   $('#toastStack').appendChild(toast);
   setTimeout(() => toast.remove(), 5000);
 }
-function setApiStatus(message, type = '') {
-  const el = $('#apiStatus');
-  el.className = `api-status ${type}`;
-  el.querySelector('span:last-child').textContent = message;
-  state.connected = type === 'connected';
-  if (getAiMode()==='personal') refreshAiMode();
+const APP_ROUTES = Object.freeze(['home','create','shortlist','history']);
+function resolveAppRoute(hash=window.location.hash) {
+  const route=String(hash||'').replace(/^#/, '').toLowerCase();
+  return {view:APP_ROUTES.includes(route)?route:'home', scrollGuide:route==='about'};
 }
-function resetConnection() { setApiStatus('Chưa kiểm tra kết nối', ''); }
-function changeView(view) {
-  if (!['create','shortlist'].includes(view)) return;
-  state.view = view;
-  $('#createView').classList.toggle('active', view === 'create');
-  $('#shortlistView').classList.toggle('active', view === 'shortlist');
-  document.querySelectorAll('[data-view]').forEach(button => button.classList.toggle('active', button.dataset.view === view));
-  $('#breadcrumbPage').textContent = view === 'create' ? 'Khám phá ý tưởng' : 'Shortlist của bạn';
-  if (view === 'shortlist') renderShortlist();
+function scrollToGuide() {
+  document.getElementById('how-it-works')?.scrollIntoView({behavior:'smooth',block:'start'});
+}
+// Central navigation for menu links, CTAs, history restore and browser Back/Forward.
+function changeView(view, options={}) {
+  const target=APP_ROUTES.includes(view)?view:'home';
+  state.view=target;
+  for (const name of APP_ROUTES) {
+    document.getElementById(name+'View')?.classList.toggle('active',name===target);
+  }
+  document.querySelectorAll('[data-view]').forEach(control=>{
+    const active=control.dataset.view===target;
+    control.classList.toggle('active',active);
+    if(control.matches('.site-nav a[data-view]')) {
+      if(active) control.setAttribute('aria-current','page');
+      else control.removeAttribute('aria-current');
+    }
+  });
+  if(target==='shortlist') renderShortlist();
   closeMobileMenu();
-  window.scrollTo({top:0,behavior:'smooth'});
+  if(target==='create') initGuestTurnstile();
+  if(!options.fromHash && window.location.hash!=='#'+target) window.history.pushState(null,'','#'+target);
+  if(options.scrollGuide){
+    window.requestAnimationFrame(scrollToGuide);
+  } else {
+    window.scrollTo({top:0,behavior:'instant'});
+  }
 }
-function openMobileMenu() { $('#sidebar').classList.add('open'); $('#overlay').hidden = false; }
-function closeMobileMenu() { $('#sidebar').classList.remove('open'); $('#overlay').hidden = true; }
+function openMobileMenu() {
+  const nav=$('#sidebar'), button=$('#menuBtn');
+  nav.classList.add('open');$('#overlay').hidden=false;
+  button.setAttribute('aria-expanded','true');
+  $('#navClose')?.focus();
+}
+function closeMobileMenu() {
+  const nav=$('#sidebar'), button=$('#menuBtn');
+  nav.classList.remove('open');$('#overlay').hidden=true;
+  button.setAttribute('aria-expanded','false');
+}
 function updateCounters() {
-  const count = state.saved.length;
-  $('#sideSavedCount').textContent = count;
-  $('#dashboardSavedCount').textContent = String(count).padStart(2,'0');
-  $('#shortlistDescription').textContent = `${count} ý tưởng được lưu trên trình duyệt này (không chứa API Key).`;
-  $('#copyAllBtn').disabled = count === 0;
+  const count=state.saved.length;
+  $('#sideSavedCount').textContent=count;
+  // The home statistic will be removed in stage 4; tolerate either markup meanwhile.
+  const dashboardCount=$('#dashboardSavedCount');
+  if(dashboardCount) dashboardCount.textContent=String(count).padStart(2,'0');
+  $('#shortlistDescription').textContent=`${count} ý tưởng được lưu trên trình duyệt này.`;
+  $('#copyAllBtn').disabled=count===0;
+}
+function isAdvancedBrief() { return document.querySelector('input[name="briefMode"]:checked')?.value === 'advanced'; }
+function refreshBriefMode() {
+  const advanced=isAdvancedBrief();
+  $('#advancedBrief').classList.toggle('hidden',!advanced);
+  $('#budgetAmount').required=advanced;
+  $('#budgetScenarioSection').classList.toggle('hidden',!advanced);
+  $('#briefModeNotice').textContent=advanced
+    ? 'Chuyên sâu: nhập ngân sách VNĐ và chọn cách sử dụng. AI không tự nhận doanh nghiệp có ưu đãi hoặc nguồn lực chưa xác nhận.'
+    : 'Vui lòng nhập 4 thông tin bắt buộc. Lưu ý: KPI và ngân sách do AI gợi ý mang tính tham khảo nếu dữ liệu đầu vào chưa đầy đủ.';
+  refreshBudgetScenario();
+  refreshPromotionFields();
+  refreshCustomerDataFields();
+}
+function refreshBudgetScenario(){
+  const mode=document.querySelector('input[name="budgetScenario"]:checked')?.value || 'alternatives';
+  $('#budgetScenarioHint').textContent=mode==='portfolio'
+    ? 'TỔNG ngân sách cho cả 5 hoạt động. Website chia số tiền thành 5 phần có tổng chính xác bằng giá trị này.'
+    : 'Có 5 phương án để lựa chọn. Mỗi phương án riêng lẻ dùng tối đa số tiền nhập; KHÔNG cộng thành 5 lần.';
+}
+function briefFactList(brief){
+  if(!brief)return [];
+  const facts=[`Sản phẩm: ${brief.product}`,`Ngành hàng: ${brief.industry}`,`Mức ngân sách: ${brief.budget}`,`Mục tiêu: ${brief.goal}`];
+  if(brief.budgetAmount!=null)facts.push(`Ngân sách người dùng nhập: ${Number(brief.budgetAmount).toLocaleString('vi-VN')}đ`);
+  if(brief.audience)facts.push(`Khách hàng mục tiêu theo brief: ${brief.audience}`);
+  if(brief.usp)facts.push(`Điểm nổi bật do người dùng khai báo: ${brief.usp}`);
+  const c=brief.context||{};
+  if(c.marketRegion)facts.push(`Thị trường: ${c.marketRegion}`);
+  if(c.targetMetric)facts.push(`Mục tiêu định lượng: ${c.targetMetric}`);
+  if(c.baseline)facts.push(`Số liệu nền do người dùng khai báo: ${c.baseline}`);
+  if(c.sellingPrice!=null)facts.push(`Giá bán do người dùng khai báo: ${Number(c.sellingPrice).toLocaleString('vi-VN')}đ`);
+  if(c.teamCapacity && c.teamCapacity!=='unknown')facts.push(`Quy mô triển khai: ${{solo:'1 người',small:'2–3 người',medium:'4–10 người',agency:'Đội chuyên trách'}[c.teamCapacity]||c.teamCapacity}`);
+  if(c.channels?.length)facts.push(`Kênh có thể sử dụng: ${c.channels.join(', ')}`);
+  if(c.customerData==='yes')facts.push('Người dùng xác nhận có tệp khách phù hợp để liên hệ');
+  if(c.promotionType==='percent')facts.push(`Giới hạn giảm giá được khai báo: ${c.promotionLimit}%`);
+  if(c.promotionType==='fixed')facts.push(`Giới hạn giảm giá được khai báo: ${Number(c.promotionLimit).toLocaleString('vi-VN')}đ`);
+  return facts.slice(0,13);
+}
+function briefAssumptionList(brief){
+  const c=brief?.context||{};
+  const items=['Hiệu quả chiến dịch, chi phí quảng cáo và KPI là mục tiêu thử nghiệm cho đến khi có kết quả đo thực tế.'];
+  if(!c.baseline)items.push('Chưa có số liệu nền để dự báo tỷ lệ chuyển đổi hoặc doanh thu.');
+  if(brief?.briefMode!=='advanced')items.push('Chưa xác nhận nguồn lực, tệp khách cũ, kênh và chính sách ưu đãi của doanh nghiệp.');
+  else {
+    if(!c.channels?.length)items.push('Chưa xác nhận các kênh Marketing hiện có.');
+    if(c.customerData!=='yes')items.push('Chưa xác nhận có tệp khách được phép liên hệ để tiếp thị.');
+    if(c.promotionType==='none')items.push('Chưa có chương trình giảm giá/quà tặng được phê duyệt.');
+  }
+  return items.slice(0,4);
+}
+function refreshPromotionFields(){
+  const show=isAdvancedBrief()&&$('#promotionType').value!=='none';
+  const field=$('#promotionLimit');
+  const isVnd=$('#promotionType').value==='fixed';
+  $('#promotionLimitWrap').classList.toggle('hidden',!show);
+  field.required=show;
+  // Giới hạn tính theo VNĐ hiển thị dấu chấm; giới hạn theo % vẫn là số bình thường.
+  field.type=isVnd?'text':'number';
+  if(isVnd){field.setAttribute('data-money','vnd');field.setAttribute('inputmode','numeric');MGMoney.reformat(field);}
+  else{field.removeAttribute('data-money');field.removeAttribute('inputmode');}
+  field.max=isVnd?'1000000000000':'100';
+  field.placeholder=isVnd?'VD: 500.000 (VNĐ)':'VD: 10 (%)';
+}
+function refreshCustomerDataFields(){
+  $('#customerCountWrap').classList.toggle('hidden',!(isAdvancedBrief()&&$('#customerData').value==='yes'));
+}
+// Text mẫu chưa sửa chỉ phục vụ hướng dẫn nhập; không được coi là dữ kiện thực.
+function verifiedBriefText(id) {
+  const field=$(`#${id}`);
+  return field?.dataset.templateDraft==='1' ? '' : (field?.value||'').trim();
 }
 function readBrief() {
-  const numberText = $('#budgetAmount').value.trim();
-  const budgetAmount = numberText ? Number(numberText) : null;
-  if (budgetAmount !== null && (!Number.isFinite(budgetAmount) || budgetAmount < 0 || budgetAmount > 1_000_000_000_000)) {
-    throw new Error('Ngân sách thực tế phải là số từ 0 đến 1.000 tỷ VNĐ.');
+  const advanced=isAdvancedBrief();
+  const numberText=advanced?$('#budgetAmount').value.trim():'';
+  const budgetAmount=MGMoney.parse(numberText);
+  if (advanced && (budgetAmount===null || !Number.isSafeInteger(budgetAmount) || budgetAmount<1000 || budgetAmount>1_000_000_000_000)) {
+    throw new Error('Chế độ chuyên sâu cần ngân sách từ 1.000 đến 1.000 tỷ VNĐ.');
   }
-  return {
-    industry: $('#industry').value.trim(), product: $('#product').value.trim(),
-    budget: $('#budget').value, goal: $('#goal').value,
-    audience: $('#audience').value.trim(),
-    budgetAmount, usp: $('#usp').value.trim()
-  };
+  const brief={industry:$('#industry').value.trim(),product:$('#product').value.trim(),budget:$('#budget').value,goal:$('#goal').value,
+    audience:advanced?$('#audience').value.trim():'',budgetAmount,usp:advanced?verifiedBriefText('usp'):'',briefMode:advanced?'advanced':'quick'};
+  if(!advanced)return brief;
+  const valueOrNull=(id)=>{const el=$(`#${id}`);const s=el.value.trim();return el.matches('[data-money]')?MGMoney.parse(s):(s===''?null:Number(s));};
+  const sellingPrice=valueOrNull('sellingPrice');
+  if(sellingPrice!==null&&(!Number.isSafeInteger(sellingPrice)||sellingPrice<0||sellingPrice>1e12))throw new Error('Giá bán sản phẩm không hợp lệ.');
+  const promotionType=$('#promotionType').value;
+  const promotionLimit=promotionType==='none'?null:valueOrNull('promotionLimit');
+  if(promotionType!=='none'&&(promotionLimit===null||!Number.isSafeInteger(promotionLimit)||promotionLimit<0||(promotionType==='percent'?promotionLimit>100:promotionLimit>1e12)))throw new Error('Giới hạn ưu đãi không hợp lệ.');
+  const customerCount=$('#customerData').value==='yes'?valueOrNull('customerCount'):null;
+  if(customerCount!==null&&(!Number.isSafeInteger(customerCount)||customerCount<0||customerCount>1e8))throw new Error('Số khách hàng hợp lệ phải là số nguyên không âm.');
+  brief.context={sellingPrice,marketRegion:verifiedBriefText('marketRegion'),targetMetric:$('#targetMetric').value.trim(),baseline:verifiedBriefText('baseline'),
+    teamCapacity:$('#teamCapacity').value,customerData:$('#customerData').value,customerCount,
+    channels:[...document.querySelectorAll('input[name="ownedChannel"]:checked')].map(x=>x.value),
+    capabilities:[...document.querySelectorAll('input[name="capability"]:checked')].map(x=>x.value),
+    promotionType,promotionLimit,scenario:document.querySelector('input[name="budgetScenario"]:checked')?.value==='portfolio'?'portfolio':'alternatives'};
+  return brief;
 }
 function fillDemoBriefIfBlank() {
   if (!$('#industry').value) $('#industry').value = 'Đồ ăn & thức uống';
   if (!$('#product').value.trim()) $('#product').value = 'Trà thảo mộc Mộc An';
   if (!$('#budget').value) $('#budget').value = 'Thấp';
   if (!$('#goal').value) $('#goal').value = 'Tăng doanh số bán hàng';
+  if(isAdvancedBrief() && !$('#budgetAmount').value.trim())MGMoney.set($('#budgetAmount'),2000000);
+}
+// Sources are provided by server-side Google Search grounding. Older history records
+// may not have them; normalize defensively and only allow HTTPS hyperlinks.
+function normalizeResearchSources(raw){
+  if(!raw||typeof raw!=='object')return null;
+  function safeUrl(value){try{const u=new URL(String(value||''));return u.protocol==='https:'&&u.href.length<=3000?u.href:'';}catch{return '';}}
+  function text(v,n=200){return String(v??'').slice(0,n);}
+  const normalizeImage=x=>x&&safeUrl(x.url)?{
+    url:safeUrl(x.url),sourceUrl:safeUrl(x.sourceUrl)||safeUrl(x.url),proxyUrl:/^\/api\/image\?u=[A-Za-z0-9_%&=.-]+$/.test(String(x.proxyUrl||''))?x.proxyUrl:'',sourceTitle:text(x.sourceTitle),label:text(x.label),license:text(x.license,40)}:null;
+  const image=normalizeImage(raw.image);
+  const images=Array.isArray(raw.images)?raw.images.map(normalizeImage).filter(Boolean).slice(0,5):[];
+  if(image&&!images.some(x=>x.url===image.url))images.unshift(image);
+  const sources=(value,max)=>Array.isArray(value)?value.slice(0,max).filter(x=>x&&safeUrl(x.url)).map(x=>({
+    url:safeUrl(x.url),title:text(x.title),source:text(x.source),verification:text(x.verification)})):[];
+  const links=raw.searchLinks||{};
+  return {image:image||images[0]||null,images,videos:sources(raw.videos,3),articles:sources(raw.articles,4),status:text(raw.status,30),
+    note:text(raw.note,300),searchLinks:{imageSearch:safeUrl(links.imageSearch),tiktokSearch:safeUrl(links.tiktokSearch),articleSearch:safeUrl(links.articleSearch)},
+    suggestions:Array.isArray(raw.suggestions)?raw.suggestions.filter(v=>typeof v==='string').slice(0,3).map(v=>v.slice(0,16000)):[],
+    diagnostic:raw.diagnostic&&typeof raw.diagnostic==='object'?{imageCount:Number(raw.diagnostic.imageCount)||0,webpageCount:Number(raw.diagnostic.webpageCount)||0,imageSearchStatus:text(raw.diagnostic.imageSearchStatus,30),imageSearchEnabled:Boolean(raw.diagnostic.imageSearchEnabled)}:null};
 }
 function normalizeIdeas(ideas) {
   if (!Array.isArray(ideas) || ideas.length !== 5) throw new Error('AI không trả về đúng 5 chiến dịch. Vui lòng thử tạo lại.');
@@ -355,6 +378,10 @@ function normalizeIdeas(ideas) {
       budgetSplit: text(idea.budgetSplit,350),
       strategy: text(idea.strategy,140), rationale: text(idea.rationale,600),
       sampleContent: text(idea.sampleContent,700), riskPlan: text(idea.riskPlan,600),
+      assumptions:Array.isArray(idea.assumptions)?idea.assumptions.slice(0,3).map(x=>text(x,200)):[],
+      portfolioWeight: Number.isFinite(Number(idea.portfolioWeight)) && Number(idea.portfolioWeight)>0 ? Number(idea.portfolioWeight) : null,
+      evidence:{facts:briefFactList(state.brief),caveats:briefAssumptionList(state.brief)},
+      resources:normalizeResearchSources(idea.resources),
       allocations: Array.isArray(idea.allocations) ? idea.allocations.slice(0,8).map(a=>({label:text(a.label,85),percent:Number(a.percent)})) : undefined,
       kpis: Array.isArray(idea.kpis) ? idea.kpis.slice(0,5).map(x=>text(x,220)) : [],
       timeline: idea.timeline.map((week,i) => ({ week: i+1, task: text(typeof week === 'string' ? week : week?.task,650) }))
@@ -368,16 +395,16 @@ function formatBrief(brief) {
 function renderCard(idea, savedView = false) {
   const saved = state.saved.some(item=>item.id === idea.id);
   const safeId = esc(idea.id);
-  const firstTask = esc(idea.timeline[0]?.task || 'Lập kế hoạch và chuẩn bị');
+  const weekSummary = (idea.timeline||[]).map((x,i)=>({task:String(x?.task||'').trim(),i})).filter(x=>x.task).map(({task,i})=>`<div class="week-pill ${idea.doneWeeks?.[i]?'is-done':''}"><b>${idea.doneWeeks?.[i]?'✓ ':''}Tuần ${String(i+1).padStart(2,'0')}</b><span>${esc(task.split(/[.;\n]/)[0].slice(0,60))}</span></div>`).join('');
   return `<article class="idea-card">
     <div class="idea-card-top"><span class="idea-number">Ý TƯỞNG ${String(idea.number || 1).padStart(2,'0')}</span><span class="idea-channel">${esc(idea.channel)}</span></div>
-    <h3>${esc(idea.title)}</h3><p class="idea-description">${esc(idea.concept)}</p>
-    <div class="idea-detail"><strong>✦ Điểm nhấn chiến dịch</strong><p>${esc(idea.hook || 'Chiến dịch được cá nhân hóa cho sản phẩm của bạn.')}</p></div>
+    <h3>${esc(idea.title)}</h3>${savedView&&idea.source==='ai'?'<p class="history-source">AI cá nhân (bản cũ)</p>':''}<p class="idea-description">${esc(idea.concept)}</p>
+    <div class="idea-detail"><strong>Điểm nhấn chiến dịch</strong><p>${esc(idea.hook || 'Chiến dịch được cá nhân hóa cho sản phẩm của bạn.')}</p></div>
     <div class="idea-timeline-header"><strong>Timeline triển khai</strong><span>04 tuần</span></div>
-    <div class="week-pills"><div class="week-pill">Tuần 01</div><div class="week-pill">Tuần 02</div><div class="week-pill">Tuần 03</div><div class="week-pill">Tuần 04</div></div>
+    <div class="week-pills">${weekSummary}</div>
     <div class="idea-footer">
-      ${savedView ? `<button type="button" class="idea-icon-action" data-action="remove" data-id="${safeId}">${icon('trash')} Xóa</button>` : `<button type="button" class="idea-save ${saved ? 'saved':''}" data-action="save" data-id="${safeId}">${icon(saved ? 'check':'bookmark')} ${saved?'Đã lưu':'Lưu shortlist'}</button>`}
-      <div class="idea-actions-right"><button type="button" class="idea-preview" data-action="details" data-id="${safeId}">${icon('eye')} Xem chi tiết</button><button type="button" class="idea-preview" data-action="copy" data-id="${safeId}" aria-label="Sao chép chiến dịch">${icon('copy')}</button></div>
+      ${!savedView?`<button type="button" class="idea-save ${saved ? 'saved':''}" data-action="save" data-id="${safeId}">${icon(saved ? 'check':'bookmark')} ${saved?'Đã lưu':'Lưu shortlist'}</button>`:''}
+      <div class="idea-actions-right"><button type="button" class="idea-preview" data-action="details" data-id="${safeId}">${icon('eye')} Xem chi tiết</button></div>
     </div>
   </article>`;
 }
@@ -387,8 +414,16 @@ function renderResults() {
   $('#ideasGrid').innerHTML = state.ideas.map(idea => renderCard(idea)).join('');
   $('#resultsSubtitle').textContent = formatBrief(state.brief);
   const label = $('#sourceTag');
-  label.textContent = state.source === 'demo' ? 'DỮ LIỆU DEMO' : state.source==='guest' ? 'AI CÓ SẴN · GEMINI' : `AI THẬT · ${$('#provider').value.toUpperCase()}`;
+  label.textContent = state.source==='demo'?'DỮ LIỆU DEMO':state.source==='ai'?'AI cá nhân (bản cũ)':'AI CÓ SẴN · GEMINI';
   label.classList.toggle('demo',state.source==='demo');
+  refreshAiMode();
+  const attribution=$('#googleResearchAttribution');
+  if(attribution){
+    const suggestions=state.ideas[0]?.resources?.suggestions||[];
+    attribution.classList.toggle('hidden',!suggestions.length);
+    attribution.innerHTML=suggestions.length?`<div><strong>Tra cứu nguồn qua Google Search</strong><small>Đề xuất tìm kiếm từ Google, không phải nội dung AI tự tạo</small></div><div class="grounding-chip-grid">${suggestions.map((html,i)=>`<iframe title="Đề xuất Google Search ${i+1}" sandbox="allow-popups allow-popups-to-escape-sandbox" loading="lazy" referrerpolicy="no-referrer" srcdoc="${esc(html)}"></iframe>`).join('')}</div>`:'';
+  }
+  if(typeof window.renderPortfolioSummary==='function')window.renderPortfolioSummary(state.ideas,state.brief);
   setTimeout(()=>section.scrollIntoView({behavior:'smooth',block:'start'}),80);
 }
 function renderShortlist() {
@@ -419,6 +454,7 @@ function toggleSaved(idea) {
   } else {
     if (state.saved.length >= 100) { notify('Shortlist tối đa 100 ý tưởng. Hãy xóa bớt trước khi lưu.', 'error'); return; }
     const savedCopy = JSON.parse(JSON.stringify(idea));
+    if(savedCopy.resources){delete savedCopy.resources.suggestions;delete savedCopy.resources.diagnostic;}
     if (!savedCopy.budgetTier && state.ideas.some(x => x.id === idea.id) && state.brief?.budget) savedCopy.budgetTier = state.brief.budget;
     state.saved.unshift(savedCopy); notify('Đã lưu ý tưởng vào shortlist!');
   }
@@ -450,10 +486,10 @@ function makeDemoIdeas(brief) {
   const budget = cheap ? 'Ưu tiên nội dung tự sản xuất, tối thiểu chi phí quảng cáo' : brief.budget === 'Cao' ? 'Có thể mở rộng ngân sách thử nghiệm và phân phối' : 'Phân bổ cân đối giữa nội dung và quảng cáo kiểm chứng';
   const templates = [
     {title:`7 ngày trải nghiệm ${p}`,channel:'TikTok · Reels',concept:`Chuỗi video ngắn về trải nghiệm thực tế với ${p}, kết hợp nội dung trước/sau và câu hỏi tương tác.`,hook:'Biến trải nghiệm thực thành bằng chứng hấp dẫn thay vì chỉ giới thiệu sản phẩm.',kpis:['Lượt xem video','Tỷ lệ xem hết','Click vào sản phẩm'],timeline:['Phân tích khách hàng; lên 7 kịch bản video và lịch đăng.','Sản xuất, đăng 3–4 video thử nghiệm; ghi nhận bình luận.','Tối ưu 3 video có kết quả tốt, gắn lời kêu gọi hành động.','Đăng video tổng kết, đo lượt truy cập và chuyển đổi; đề xuất vòng tiếp theo.']},
-    {title:`Bạn giới thiệu bạn – Cùng khám phá ${p}`,channel:'Facebook · Zalo',concept:`Chương trình khách hàng giới thiệu bạn bè bằng mã hoặc lời nhắn cá nhân, đổi lấy một ưu đãi nhỏ phù hợp biên lợi nhuận.`,hook:'Tận dụng lòng tin từ người quen để tạo đơn hàng mới với chi phí kiểm soát được.',kpis:['Lượt giới thiệu','Số khách mới','Chi phí/đơn'],timeline:['Thiết kế quy tắc giới thiệu, mức quà và cách theo dõi mã.','Thông báo tới khách cũ qua Zalo/Facebook và đăng nội dung giải thích.','Nhắc chương trình, chia sẻ phản hồi và tối ưu ưu đãi.','Đối soát đơn, tổng kết chi phí quà tặng và kết quả giới thiệu.']},
+    {title:`Bạn giới thiệu bạn – Cùng khám phá ${p}`,channel:'Facebook · Zalo',concept:`Chương trình khách hàng giới thiệu bạn bè bằng mã hoặc lời nhắn cá nhân, chỉ mở ưu đãi nếu doanh nghiệp có chính sách được xác nhận.`,hook:'Tận dụng lòng tin từ người quen để tạo đơn hàng mới với chi phí kiểm soát được.',kpis:['Lượt giới thiệu','Số khách mới','Chi phí/đơn'],timeline:['Thiết kế quy tắc giới thiệu và cách theo dõi mã; chỉ thêm quà nếu được duyệt.','Đăng nội dung giải thích trên kênh được phép, không tự gửi tin cho khách chưa đồng ý.','Nhắc chương trình, chia sẻ phản hồi và tối ưu ưu đãi.','Đối soát đơn, tổng kết chi phí quà tặng và kết quả giới thiệu.']},
     {title:`Một câu chuyện, một lý do chọn ${p}`,channel:'Facebook · Instagram',concept:`Kể câu chuyện nguồn gốc và điểm khác biệt của ${p} qua bài viết dạng carousel và phản hồi khách hàng.`,hook:'Đánh vào giá trị và cảm xúc thay cho giảm giá trực tiếp.',kpis:['Lượt lưu bài','Tương tác','Tin nhắn tư vấn'],timeline:['Xác định thông điệp, thu thập ảnh thật và câu chuyện sản phẩm.','Đăng chuỗi 3 bài về vấn đề, giải pháp, giá trị sử dụng.','Khuyến khích khách hàng chia sẻ trải nghiệm; chọn câu chuyện nổi bật.','Tổng hợp FAQ, đo lượt nhắn tin và cải thiện nội dung chuyển đổi.']},
-    {title:`Mini Challenge: Thử ngay ${p}`,channel:'TikTok · Cộng đồng',concept:`Thử thách nội dung do khách hàng tạo: đăng ảnh/video sử dụng ${p} kèm hashtag, chọn bài sáng tạo nhất.`,hook:'Khuyến khích cộng đồng tự tạo nội dung và lan truyền tự nhiên.',kpis:['Bài UGC hợp lệ','Lượt tiếp cận','Lượng người theo dõi mới'],timeline:['Xác định thể lệ rõ ràng, giải thưởng nhỏ và hashtag riêng.','Đăng video mở màn, mời các khách hàng đầu tiên tham gia.','Tổng hợp bài tham gia, chia sẻ bài nổi bật và duy trì thử thách.','Chọn bài đạt tiêu chí, trao quà, công bố kết quả và đo hiệu quả.']},
-    {title:`Khách hàng cũ – Ưu đãi đúng lúc`,channel:'Zalo OA · Email',concept:`Chăm sóc khách hàng đã mua ${p} bằng gợi ý sử dụng, ưu đãi có thời hạn và lời mời phản hồi tự nguyện.`,hook:'Tăng doanh thu lặp lại bằng nội dung hữu ích và ưu đãi có mục tiêu.',kpis:['Tỷ lệ phản hồi','Đơn mua lại','Doanh thu mua lại'],timeline:['Phân nhóm khách đồng ý nhận tin; xây dựng nội dung chăm sóc.','Gửi hướng dẫn hữu ích và khảo sát ngắn sau mua.','Gửi ưu đãi phù hợp, tránh làm phiền hoặc nhắn quá nhiều.','Đo số đơn lặp lại, xử lý phản hồi và cải thiện chương trình.']}
+    {title:`Mini Challenge: Thử ngay ${p}`,channel:'TikTok · Cộng đồng',concept:`Gợi ý khách chia sẻ ảnh/video liên quan đến ${p} nếu họ đồng ý, có thể trưng bày bài nổi bật khi được phép.`,hook:'Khuyến khích cộng đồng tự tạo nội dung và lan truyền tự nhiên.',kpis:['Bài UGC hợp lệ','Lượt tiếp cận','Lượng người theo dõi mới'],timeline:['Xác định thể lệ, cách xin phép dùng nội dung và hashtag riêng; không hứa thưởng chưa duyệt.','Đăng video mở màn, mời các khách hàng đầu tiên tham gia.','Tổng hợp bài tham gia, chia sẻ bài nổi bật và duy trì thử thách.','Chọn bài hợp lệ, công bố cảm ơn người tham gia và đo kết quả.']},
+    {title:`Khách hàng cũ – Ưu đãi đúng lúc`,channel:'Zalo OA · Email',concept:`Nếu có tệp khách đã cho phép liên hệ, chia sẻ hướng dẫn sử dụng ${p} và mời phản hồi tự nguyện.`,hook:'Tăng doanh thu lặp lại bằng nội dung hữu ích và ưu đãi có mục tiêu.',kpis:['Tỷ lệ phản hồi','Đơn mua lại','Doanh thu mua lại'],timeline:['Phân nhóm khách đồng ý nhận tin; xây dựng nội dung chăm sóc.','Gửi hướng dẫn hữu ích và khảo sát ngắn sau mua.','Chỉ gửi thông tin phù hợp nếu có quyền tiếp thị, tránh làm phiền hoặc nhắn quá nhiều.','Đo số đơn lặp lại, xử lý phản hồi và cải thiện chương trình.']}
   ];
   const sampleDetails = [
     {strategy:'Video trải nghiệm thực tế',rationale:'Dùng video để người xem nhìn thấy cách sử dụng sản phẩm. Cần thử nhiều nội dung để kiểm chứng mức độ quan tâm.',sampleContent:`${p} có phù hợp với bạn? Xem cách sử dụng và đặt câu hỏi ở bình luận nhé. Xem thêm thông tin sản phẩm tại trang của chúng tôi!`,riskPlan:'Video ít tương tác: thử lại góc quay và câu mở đầu, so sánh tỷ lệ xem hết trước khi quảng cáo.',kpis:['8 video được đăng trong 4 tuần – kiểm tra lịch đăng','10.000 lượt xem là mục tiêu thử nghiệm – đối chiếu thống kê TikTok']},
@@ -463,22 +499,39 @@ function makeDemoIdeas(brief) {
     {strategy:'Chăm sóc và mua lại',rationale:'Dùng nội dung hữu ích để giữ liên hệ với người đã mua; chỉ gửi thông tin cho khách hàng đồng ý nhận tin.',sampleContent:`Bạn đang sử dụng ${p}? Đây là một số gợi ý hữu ích dành cho bạn. Nhắn tin nếu cần hỗ trợ thêm!`,riskPlan:'Khách hàng thấy bị làm phiền: cho phép từ chối nhận tin và giới hạn tần suất gửi.',kpis:['2 thông điệp chăm sóc được gửi đúng lịch – nhật ký gửi','10 phản hồi là mục tiêu thử nghiệm – theo dõi phản hồi tự nguyện']}
   ];
   return normalizeIdeas(templates.map((t,i)=>({
-    ...t,...sampleDetails[i],audience:a,budgetSplit:budget,
+    ...t,...sampleDetails[i],audience:a,budgetSplit:budget,portfolioWeight:[25,25,20,15,15][i],
     timeline:t.timeline.map((task,j)=>({week:j+1,task})),
     number:i+1
   })));
 }
 function busy(active) {
   state.loading = active;
-  $('#generateBtn').disabled = active;
+  $('#generateBtn').disabled = active || !guestReady;
   $('#demoBtn').disabled = active;
   $('#regenerateBtn').disabled = active;
-  $('#connectBtn').disabled = active;
-  $('#loadModelsBtn').disabled = active || verifyRunning;
-  $('#verifyModelsBtn').disabled = active || verifyRunning || !candidateModels.length;
-  $('#generateBtn').innerHTML = active ? `<span class="spin">${icon('rotate')}</span> AI đang lên ý tưởng...` : `${icon('sparkle')} Tạo 5 ý tưởng <svg class="icon"><use href="#i-arrow"/></svg>`;
-  document.querySelectorAll('input[name=aiMode]').forEach(input=>{input.disabled=active;});
+  $('#generateBtn').innerHTML = active ? `<span class="spin">${icon('rotate')}</span> AI đang lên ý tưởng...` : `${icon('zap')} Tạo 5 ý tưởng <svg class="icon"><use href="#i-arrow"/></svg>`;
   if(!active)refreshAiMode();
+}
+// Parse backend responses, including HTML from hosting proxy errors.
+// Never print the raw response (which could include diagnostics or sensitive information).
+async function readAiJsonResponse(response) {
+  const raw = await response.text();
+  let data;
+  try { data = JSON.parse(raw); } catch {}
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    const status = response.status;
+    const hint = status === 404
+      ? 'Không tìm thấy /api/ai. Kiểm tra ứng dụng Node.js và server.js trên cPanel.'
+      : status === 502 || status === 503 || status === 504
+      ? 'Máy chủ AI đang lỗi, quá tải hoặc quá thời gian. Kiểm tra logs của ứng dụng Node.js trong cPanel.'
+      : status === 401 || status === 403
+      ? 'Yêu cầu bị chặn hoặc từ chối. Kiểm tra cấu hình bảo mật và Cloudflare Turnstile.'
+      : 'Kiểm tra logs ứng dụng Node.js trong cPanel và Network của yêu cầu /api/ai.';
+    const error = new Error(`API trả HTTP ${status} nhưng không phải JSON. ${hint}`);
+    error.status = status; error.code = 'non_json_response';
+    throw error;
+  }
+  return data;
 }
 async function apiRequest(payload) {
   let response;
@@ -488,55 +541,32 @@ async function apiRequest(payload) {
       cache:'no-store', body:JSON.stringify(payload)
     });
   } catch {
-    throw new Error('Không kết nối được máy chủ. Hãy chạy bằng Netlify Dev hoặc triển khai lên Netlify để dùng AI thật.');
+    throw new Error('Không kết nối được máy chủ AI. Hãy kiểm tra mạng hoặc thử tải lại website.');
   }
-  const type = response.headers.get('content-type') || '';
-  if (!type.includes('application/json')) throw new Error('Chưa tìm thấy Netlify Function. Chế độ demo vẫn hoạt động khi mở index.html trực tiếp; AI thật cần chạy trên Netlify.');
-  const data = await response.json();
-  if (!response.ok || !data.ok) { const error = new Error(data.error || `Yêu cầu API thất bại (${response.status}).`); error.status = response.status; error.code = data.code; throw error; }
+  const data = await readAiJsonResponse(response);
+  if (!response.ok || !data.ok) {
+    const error = new Error(data.error || `Yêu cầu API thất bại (${response.status}).`);
+    error.status = data.providerStatus || response.status;
+    error.code = data.code;
+    throw error;
+  }
   return data;
 }
-async function testConnection() {
-  if (verifyRunning) { notify('Hãy dừng hoặc hoàn tất xác minh model trước.', 'error'); return; }
-  const apiKey = $('#apiKey').value.trim();
-  const provider = $('#provider').value;
-  const model = selectedModel();
-  if (!apiKey) { notify('Hãy dán API Key của bạn vào ô bên trái.','error'); $('#apiKey').focus(); return; }
-  if (!model) { notify(modelListLoading ? 'Danh sách model đang tải. Hãy đợi hoàn tất.' : 'Hãy nhập API Key và tải danh sách model trước.', 'error'); $('#model').focus(); return; }
-  $('#connectBtn').disabled = true;
-  $('#connectBtn').querySelector('span').textContent = 'Đang kiểm tra...';
-  setApiStatus('Đang xác thực API Key...', '');
-  try {
-    await apiRequest({action:'test',provider,apiKey,model});
-    setApiStatus(`Đã kết nối ${provider==='gemini'?'Gemini':'OpenAI'} · ${model}`,'connected');
-    notify('Đã xác thực khóa và model. Hạn mức có thể thay đổi sau thời điểm xác minh.');
-  } catch (error) { setApiStatus(error.message,'failed'); notify(error.message,'error'); }
-  finally { $('#connectBtn').disabled = false; $('#connectBtn').querySelector('span').textContent = 'Kiểm tra kết nối'; }
-}
 async function generate(useDemo = false) {
-  if (state.loading || verifyRunning) return;
+  if (state.loading) return;
   if (useDemo) fillDemoBriefIfBlank();
-  if (!$('#campaignForm').reportValidity()) { notify('Vui lòng nhập đủ 4 thông tin bắt buộc.','error'); return; }
+  if (!$('#campaignForm').reportValidity()) { notify(isAdvancedBrief()?'Hãy điền đủ 4 thông tin cơ bản và ngân sách VNĐ ở chế độ Chuyên sâu.':'Vui lòng nhập đủ 4 thông tin bắt buộc.','error'); return; }
   let brief;
   try { brief = readBrief(); } catch(error) {notify(error.message,'error');return;}
-  if (!useDemo && getAiMode()==='guest') {
-    if (!guestReady) {notify('AI có sẵn chưa được cấu hình trên Netlify. Bạn có thể chọn AI cá nhân hoặc Demo.','error');return;}
-    if (!guestToken) {notify('Hãy hoàn thành xác minh bảo vệ ở mục AI có sẵn trước khi tạo.','error');if(window.innerWidth<=990)openMobileMenu();return;}
+  if (!useDemo) {
+    if (!guestReady) {notify('AI có sẵn chưa khả dụng. Bạn có thể dùng Demo ngay.','error');return;}
+    if (!guestToken) {notify('Hãy hoàn thành xác minh bảo vệ trước khi tạo.','error');$('#apiPanel').scrollIntoView({behavior:'smooth',block:'start'});return;}
   }
-  if (!useDemo && getAiMode()==='personal' && !$('#apiKey').value.trim()) {
-    notify('Để tạo bằng AI thật, hãy nhập API Key. Hoặc nhấn “Thử demo”.','error');
-    $('#apiKey').focus();
-    if (window.innerWidth <= 990) openMobileMenu();
-    return;
-  }
-  if (!useDemo && getAiMode()==='personal' && (!selectedModel() || fetchedKeySignature !== `${$('#provider').value}:${$('#apiKey').value.trim()}`)) {
-    notify('Hãy tải model theo API Key và chọn model trước khi tạo bằng AI thật.', 'error');
-    return;
-  }
+  const previousBrief = state.brief;
   state.brief = brief;
-  busy(true);
+  busy(true, useDemo);
   $('#resultsSection').classList.remove('hidden');
-  $('#resultsSubtitle').textContent = useDemo ? 'Đang chuẩn bị 5 chiến dịch mẫu...' : 'Đang trao đổi với AI để lập 5 chiến dịch và 20 tuần công việc...';
+  $('#resultsSubtitle').textContent = useDemo ? 'Đang chuẩn bị 5 hoạt động mẫu...' : 'Đang tạo 5 chiến dịch, mỗi chiến dịch có kế hoạch triển khai 4 tuần...';
   $('#ideasGrid').innerHTML = '<div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>';
   $('#resultsSection').scrollIntoView({behavior:'smooth',block:'start'});
   try {
@@ -545,21 +575,26 @@ async function generate(useDemo = false) {
       await new Promise(resolve => setTimeout(resolve,450));
       ideas = makeDemoIdeas(brief);
     } else {
-      const guest=getAiMode()==='guest';
-      const data = await apiRequest(guest
-        ? {action:'guest-generate',brief,turnstileToken:guestToken}
-        : {action:'generate',provider:$('#provider').value,apiKey:$('#apiKey').value.trim(),model:selectedModel(),brief});
+      const data=await apiRequest({action:'guest-generate',brief,turnstileToken:guestToken});
       ideas=normalizeIdeas(data.ideas);
-      if (guest) setGuestStatus('AI có sẵn đã tạo thành công.','ready');
-      else setApiStatus(`Đã kết nối ${$('#provider').value} · ${selectedModel()}`,'connected');
+      setGuestStatus('AI có sẵn đã tạo thành công.','ready');
     }
-    state.ideas = ideas;state.source=useDemo?'demo':getAiMode()==='guest'?'guest':'ai';renderResults();
+    state.ideas = ideas;state.source=useDemo?'demo':'guest';renderResults();
+    if (!useDemo && window.MGProgress) await window.MGProgress.complete();
     notify(useDemo?'Đã tạo 5 chiến dịch DEMO (không gọi AI).':'AI đã tạo thành công 5 chiến dịch!');
   } catch(error) {
-    if (state.ideas.length) renderResults();
-    else $('#resultsSection').classList.add('hidden');
-    notify(error.message||'Đã xảy ra lỗi khi tạo ý tưởng.','error');
-  } finally { if(!useDemo && getAiMode()==='guest')resetGuestChallenge(); busy(false); }
+    if (state.ideas.length) {
+      // Never label an old result as if it belonged to the newly submitted brief.
+      state.brief = previousBrief;
+      renderResults();
+      $('#resultsSubtitle').textContent += ' · Đây là kết quả lần trước; lần tạo mới chưa thành công.';
+    } else {
+      $('#resultsSection').classList.add('hidden');
+      state.brief = previousBrief;
+    }
+    if(error.code==='guest_site_limit'){guestReady=false;refreshAiMode();setGuestStatus('AI có sẵn đã hết hạn mức. Bạn có thể dùng Demo.','error');}
+    notify(error.message||'Đã xảy ra lỗi khi tạo ý tưởng. Brief đã được giữ nguyên trên form.','error');
+  } finally { if(!useDemo)resetGuestChallenge(); window.MGProgress?.stop(); busy(false); }
 }
 
 document.addEventListener('click',async (event)=>{
@@ -576,53 +611,26 @@ document.addEventListener('click',async (event)=>{
   if (action==='copy') await copyText(ideaToText(idea));
 });
 
-document.querySelectorAll('[data-view]').forEach(button=>button.addEventListener('click',()=>changeView(button.dataset.view)));
+document.querySelectorAll('[data-view]').forEach(control=>control.addEventListener('click',event=>{
+  event.preventDefault();
+  changeView(control.dataset.view,{scrollGuide:control.dataset.scroll==='how-it-works'});
+}));
 $('#menuBtn').addEventListener('click',openMobileMenu);
 $('#overlay').addEventListener('click',closeMobileMenu);
 $('#goCreateBtn').addEventListener('click',()=>changeView('create'));
+document.querySelectorAll('input[name="briefMode"]').forEach(x=>x.addEventListener('change',refreshBriefMode));
+document.querySelectorAll('input[name="budgetScenario"]').forEach(x=>x.addEventListener('change',refreshBudgetScenario));
+$('#promotionType').addEventListener('change',()=>{ $('#promotionLimit').value=''; refreshPromotionFields(); });
+$('#customerData').addEventListener('change',refreshCustomerDataFields);
+refreshBriefMode();
 $('#campaignForm').addEventListener('submit',event=>{event.preventDefault();generate(false);});
 $('#demoBtn').addEventListener('click',()=>generate(true));
 $('#regenerateBtn').addEventListener('click',()=>generate(state.source==='demo'));
-$('#connectBtn').addEventListener('click',testConnection);
-document.querySelectorAll('input[name=aiMode]').forEach(radio=>radio.addEventListener('change',refreshAiMode));
-$('#loadModelsBtn').addEventListener('click',()=>{
-  if (verifyRunning) return;
-  candidateModels=[]; verifiedModels=[];
-  $('#verifyModelsBtn').disabled=true;
-  loadModelList();
-});
-$('#verifyModelsBtn').addEventListener('click',verifyAvailableModels);
-$('#stopVerifyBtn').addEventListener('click',stopVerification);
-$('#toggleKey').addEventListener('click',()=>{
-  const input=$('#apiKey');input.type=input.type==='password'?'text':'password';
-  $('#toggleKey').innerHTML=`<svg class="icon"><use href="#i-${input.type==='password'?'eye':'eyeoff'}"/></svg>`;
-  $('#toggleKey').setAttribute('aria-label',input.type==='password'?'Hiện API Key':'Ẩn API Key');
-});
-$('#clearKeyBtn').addEventListener('click',()=>{
-  $('#apiKey').value = '';
-  $('#apiKey').type = 'password';
-  $('#toggleKey').innerHTML = '<svg class="icon"><use href="#i-eye"/></svg>';
-  invalidateModels('API Key đã được xóa. Danh sách model cũng đã xóa.');
-  notify('Đã xóa API Key và danh sách model khỏi trang.');
-});
-$('#provider').addEventListener('change',()=>{
-  $('#apiKey').value = '';
-  setGuide($('#provider').value);
-  invalidateModels('Đã đổi nền tảng. Nhập API Key tương ứng để tải model.');
-});
-$('#apiKey').addEventListener('input', scheduleModelFetch);
-$('#apiKey').addEventListener('blur',()=>{
-  if (modelFetchTimer) loadModelList();
-});
-$('#model').addEventListener('change', resetConnection);
 $('#copyAllBtn').addEventListener('click',()=>{
   if (!state.saved.length) {notify('Chưa có ý tưởng nào để sao chép.','error');return;}
   copyText(`MARKETGENIUS AI — SHORTLIST\n\n${state.saved.map((idea,i)=>`${i+1}. ${ideaToText(idea)}`).join('\n\n────────────────────\n\n')}`);
 });
 $('#detailsDialog').addEventListener('click',event=>{if(event.target===$('#detailsDialog'))$('#detailsDialog').close();});
-setGuide('gemini');
 refreshAiMode();
 loadGuestConfiguration();
-clearModelPicker();
-$('#loadModelsBtn').disabled = true;
 updateCounters();renderShortlist();

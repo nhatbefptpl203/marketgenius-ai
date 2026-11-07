@@ -1,0 +1,329 @@
+/* MarketGenius AI v2.2 — sourced product imagery and research links */
+.media-card {
+  display:grid;
+  grid-template-columns:118px minmax(0,1fr);
+  gap:12px;
+  margin:14px 0 2px;
+  padding:11px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  min-width:0;
+}
+.media-card-image {
+  min-width:0;
+}
+.media-thumbnail {
+  display:flex;
+  position:relative;
+  align-items:center;
+  justify-content:center;
+  width:100%;
+  min-height:112px;
+  height:100%;
+  max-height:146px;
+  border-radius:var(--radius);
+  overflow:hidden;
+  background:var(--surface-muted);
+  color:var(--text-3);
+}
+.media-thumbnail img {
+  object-fit:contain;
+  width:100%;
+  height:100%;
+  max-height:146px;
+}
+.media-thumbnail-empty {
+  flex-direction:column;
+  gap:6px;
+  font-size:24px;
+}
+.media-thumbnail-empty small {
+  font-size:9px;
+  text-align:center;
+  line-height:1.5;
+  padding:0 7px;
+}
+.media-card-links {
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  justify-content:center;
+  gap:8px;
+}
+.media-card-links strong {
+  font-size:10.5px;
+  color:var(--text);
+}
+.media-card-links a {
+  max-width:100%;
+  color:var(--text-3);
+  font-size:10px;
+  line-height:1.55;
+  overflow-wrap:anywhere;
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+}
+.media-card-links a:hover {
+  text-decoration:underline;
+}
+.media-card-links small {
+  color:var(--text-3);
+  font-size:9px;
+  line-height:1.4;
+}
+.media-pending {
+  font-size:10px;
+  color:var(--text-3);
+  background:var(--surface-muted);
+  border-radius:var(--radius);
+  padding:10px;
+  margin:12px 0;
+}
+.image-fallback {
+  display:none;
+  text-align:center;
+  font-size:10px;
+  line-height:1.6;
+  padding:9px;
+  color:var(--primary);
+}
+.failed-image img.product-source-image {
+  display:none;
+}
+.failed-image .image-fallback {
+  display:block;
+}
+.product-research {
+  margin:20px 0 22px;
+  padding:16px;
+  border-radius:var(--radius-lg);
+  border:1px solid var(--border);
+  background:var(--surface);
+  break-inside:avoid;
+}
+.product-research h4 {
+  font-size:13px !important;
+  margin:0 0 14px !important;
+  color:var(--primary);
+}
+.product-research-grid {
+  display:grid;
+  grid-template-columns:minmax(140px,35%) minmax(0,1fr);
+  gap:15px;
+  align-items:start;
+}
+.reference-photo {
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  gap:7px;
+  min-height:165px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  overflow:hidden;
+  padding:9px;
+  word-break:break-word;
+}
+.reference-photo img {
+  max-width:100%;
+  max-height:200px;
+  object-fit:contain;
+}
+.reference-photo small {
+  color:var(--text-3);
+  font-size:9px;
+  line-height:1.6;
+  text-align:center;
+}
+.reference-photo-empty {
+  text-align:center;
+  padding:20px;
+  gap:13px;
+  color:var(--text-3);
+  font-size:11px;
+}
+.reference-photo-empty a {
+  color:var(--text-3);
+  font-weight:700;
+}
+.reference-source-list {
+  min-width:0;
+}
+.reference-source-list h5 {
+  font-size:11px;
+  margin:3px 0 9px;
+  color:var(--text);
+}
+.reference-links {
+  padding:0;
+  margin:0 0 14px;
+  list-style:none;
+  display:grid;
+  gap:7px;
+}
+.reference-links li {
+  border-bottom:1px solid var(--border);
+  padding-bottom:7px;
+}
+.reference-links li a {
+  font-size:11px;
+  line-height:1.6;
+  display:block;
+  color:var(--primary);
+  overflow-wrap:anywhere;
+}
+.reference-links li a:hover {
+  text-decoration:underline;
+}
+.reference-links li small {
+  color:var(--text-3);
+  font-size:9px;
+}
+.reference-caveat {
+  color:var(--text-3);
+  font-size:9px;
+  line-height:1.6;
+  margin:0 0 13px;
+}
+.product-research .studio-disclaimer a {
+  color:var(--primary);
+  text-decoration:underline;
+}
+.google-grounding-suggestions {
+  border-top:1px solid var(--border);
+  margin-top:12px;
+  padding-top:10px;
+}
+.google-grounding-suggestions summary {
+  cursor:pointer;
+  color:var(--primary);
+  font-size:10px;
+  font-weight:700;
+}
+.google-grounding-suggestions iframe {
+  display:block;
+  border:0;
+  width:100%;
+  min-height:64px;
+  margin-top:7px;
+  background:var(--surface);
+}
+@media (max-width:680px) {
+  .media-card {
+    grid-template-columns:88px minmax(0,1fr);
+    gap:10px;
+  }
+  .media-thumbnail {
+    min-height:95px;
+  }
+  .media-card-links {
+    gap:5px;
+  }
+  .media-card-links a {
+    font-size:9.5px;
+  }
+  .product-research {
+    padding:12px;
+  }
+  .product-research-grid {
+    grid-template-columns:1fr;
+  }
+  .reference-photo {
+    min-height:130px;
+  }
+  .reference-photo img {
+    max-height:190px;
+  }
+}
+@media print {
+  .product-research {
+    background:var(--surface);
+    border:1px solid var(--border);
+    page-break-inside:avoid;
+  }
+  .product-research a {
+    color:var(--text);
+  }
+  .reference-links li a:after {
+    content:" · " attr(href);
+    font-size:8px;
+    overflow-wrap:anywhere;
+    color:var(--text-2);
+  }
+  .reference-photo img {
+    max-height:125px;
+  }
+  .google-grounding-suggestions {
+    display:none !important;
+  }
+  .media-card {
+    break-inside:avoid;
+  }
+}
+.google-grounding-attribution {
+  margin:0 0 16px;
+  padding:12px 14px;
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  background:var(--surface);
+}
+.google-grounding-attribution strong {
+  display:block;
+  font-size:11px;
+  color:var(--primary);
+}
+.google-grounding-attribution small {
+  display:block;
+  color:var(--text-3);
+  font-size:9px;
+  margin:4px 0 8px;
+}
+.grounding-chip-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+  gap:8px;
+}
+.grounding-chip-grid iframe {
+  width:100%;
+  min-height:62px;
+  border:0;
+  background:var(--surface);
+  border-radius:var(--radius);
+}
+@media (max-width:680px) {
+  .grounding-chip-grid {
+    grid-template-columns:1fr;
+  }
+}
+/* v2.2.1: direct product photos inside each result card */
+.media-card {
+  grid-template-columns:150px minmax(0,1fr);
+  align-items:stretch;
+}
+.media-thumbnail {
+  min-height:136px;
+  max-height:170px;
+}
+.media-thumbnail img {
+  max-height:170px;
+}
+.product-research .reference-photo img {
+  max-height:245px;
+}
+@media (max-width:680px) {
+  .media-card {
+    grid-template-columns:112px minmax(0,1fr);
+  }
+  .media-thumbnail {
+    min-height:122px;
+  }
+  .media-thumbnail img {
+    max-height:150px;
+  }
+}

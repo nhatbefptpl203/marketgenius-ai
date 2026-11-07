@@ -1,172 +1,229 @@
-<!doctype html>
+<!DOCTYPE html>
+
 <html lang="vi">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#101a37" />
-  <meta name="description" content="MarketGenius AI - Trợ lý tạo ý tưởng chiến dịch marketing bằng AI, lập timeline 4 tuần và lưu shortlist." />
-  <title>MarketGenius AI — Campaign Studio</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css" />
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="#FAF9F6" name="theme-color"/>
+<meta content="MarketGenius AI — studio lập kế hoạch marketing. Nhập brief, tạo 5 chiến dịch, triển khai 4 tuần, lưu Shortlist và chia sẻ Smart Planner." name="description"/>
+<title>MarketGenius AI | Lập kế hoạch Marketing</title>
+<link href="/favicon.ico?v=16" rel="icon" sizes="any"/>
+<link href="/favicon-32.png?v=16" rel="icon" sizes="32x32" type="image/png"/>
+<link href="/favicon-192.png?v=16" rel="icon" sizes="192x192" type="image/png"/>
+<link href="/apple-touch-icon.png?v=16" rel="apple-touch-icon"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="styles.css?v=2417" rel="stylesheet"/>
+<link href="research-media.css?v=2400" rel="stylesheet"/>
+<link href="startup-theme.css?v=2400" rel="stylesheet"/><link href="studio-layout.css?v=2400" rel="stylesheet"/><link href="smart-templates.css?v=2400" rel="stylesheet"/>
+<link href="saas-design.css?v=2400" rel="stylesheet"/>
+<link rel="canonical" href="https://smartgear.website/"/>
+<link rel="manifest" href="/manifest.webmanifest"/>
+<meta property="og:type" content="website"/><meta property="og:site_name" content="MarketGenius AI"/><meta property="og:title" content="MarketGenius AI — Lập kế hoạch Marketing"/><meta property="og:description" content="Tạo chiến dịch Marketing, quản lý ý tưởng và lập kế hoạch triển khai 4 tuần."/><meta property="og:url" content="https://smartgear.website/"/><meta property="og:image" content="https://smartgear.website/assets/marketgenius-symbol.png"/><meta name="twitter:card" content="summary"/>
 </head>
 <body>
-  <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="icons-defs">
-    <symbol id="i-sparkle" viewBox="0 0 24 24"><path d="m12 3 1.8 6.2L20 11l-6.2 1.8L12 19l-1.8-6.2L4 11l6.2-1.8L12 3Z"/><path d="m19 18 .6 1.4L21 20l-1.4.6L19 22l-.6-1.4L17 20l1.4-.6L19 18Z"/></symbol>
-    <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.7"/><rect x="14" y="3" width="7" height="7" rx="1.7"/><rect x="3" y="14" width="7" height="7" rx="1.7"/><rect x="14" y="14" width="7" height="7" rx="1.7"/></symbol>
-    <symbol id="i-bookmark" viewBox="0 0 24 24"><path d="M6 4.5A1.5 1.5 0 0 1 7.5 3h9A1.5 1.5 0 0 1 18 4.5V21l-6-4-6 4V4.5Z"/></symbol>
-    <symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="m11 12 9-9 1 3-3 1v3h-3v3h-3"/></symbol>
-    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
-    <symbol id="i-chev" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></symbol>
-    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
-    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></symbol>
-    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v5M14 11v5"/></symbol>
-    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></symbol>
-    <symbol id="i-eyeoff" viewBox="0 0 24 24"><path d="m3 3 18 18M10.6 6.1c.5-.1 1-.1 1.4-.1 6.4 0 10 6 10 6a15 15 0 0 1-3.4 3.6M6.4 6.4C3.6 8.4 2 12 2 12s3.6 6 10 6c1.2 0 2.4-.2 3.4-.6M10 10a3 3 0 0 0 4 4"/></symbol>
-    <symbol id="i-zap" viewBox="0 0 24 24"><path d="m13 2-9 12h7l-1 8 10-12h-7l0-8Z"/></symbol>
-    <symbol id="i-bulb" viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M8 15c-1.3-1.1-2-2.9-2-4.5A6 6 0 0 1 18 10.5c0 1.6-.7 3.4-2 4.5-.6.5-1 1.3-1 3H9c0-1.7-.4-2.5-1-3Z"/></symbol>
-    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
-    <symbol id="i-settings" viewBox="0 0 24 24"><path d="M10 3h4l.6 2.3 2 1.1 2.2-.7 2 3.5-1.7 1.7v2.2l1.7 1.7-2 3.5-2.2-.7-2 1.1L14 21h-4l-.6-2.3-2-1.1-2.2.7-2-3.5 1.7-1.7v-2.2L3.2 9.2l2-3.5 2.2.7 2-1.1L10 3Z"/><circle cx="12" cy="12" r="3"/></symbol>
-    <symbol id="i-close" viewBox="0 0 24 24"><path d="M5 5l14 14M19 5 5 19"/></symbol>
-    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 2 4 5v6c0 5.3 3.4 9 8 11 4.6-2 8-5.7 8-11V5l-8-3Z"/><path d="m9 12 2 2 4-4"/></symbol>
-    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
-    <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.1 0l2-2a5 5 0 0 0-7.1-7.1l-1.1 1.1M14 11a5 5 0 0 0-7.1 0l-2 2A5 5 0 0 0 12 20.1l1.1-1.1"/></symbol>
-    <symbol id="i-rotate" viewBox="0 0 24 24"><path d="M20 10a8 8 0 1 0 1 5M20 4v6h-6"/></symbol>
-    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v13m-5-5 5 5 5-5M4 18v3h16v-3"/></symbol>
-    <symbol id="i-wand" viewBox="0 0 24 24"><path d="m4 20 13-13 3 3L7 23l-3-3ZM14 4l.6-1.4L16 2l.6 1.4L18 4l-1.4.6L16 6l-.6-1.4L14 4ZM19 16l.5-1.5L21 14l.5 1.5L23 16l-1.5.5L21 18l-.5-1.5L19 16Z"/></symbol>
-  </svg>
+<svg aria-hidden="true" class="icons-defs" xmlns="http://www.w3.org/2000/svg">
+<symbol id="i-grid" viewbox="0 0 24 24"><rect height="7" rx="1.7" width="7" x="3" y="3"></rect><rect height="7" rx="1.7" width="7" x="14" y="3"></rect><rect height="7" rx="1.7" width="7" x="3" y="14"></rect><rect height="7" rx="1.7" width="7" x="14" y="14"></rect></symbol>
+<symbol id="i-bookmark" viewbox="0 0 24 24"><path d="M6 4.5A1.5 1.5 0 0 1 7.5 3h9A1.5 1.5 0 0 1 18 4.5V21l-6-4-6 4V4.5Z"></path></symbol>
+<symbol id="i-key" viewbox="0 0 24 24"><circle cx="8" cy="15" r="4"></circle><path d="m11 12 9-9 1 3-3 1v3h-3v3h-3"></path></symbol>
+<symbol id="i-arrow" viewbox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"></path></symbol>
+<symbol id="i-chev" viewbox="0 0 24 24"><path d="m7 10 5 5 5-5"></path></symbol>
+<symbol id="i-check" viewbox="0 0 24 24"><path d="m5 12 4 4L19 6"></path></symbol>
+<symbol id="i-copy" viewbox="0 0 24 24"><rect height="12" rx="2" width="12" x="8" y="8"></rect><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"></path></symbol>
+<symbol id="i-trash" viewbox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v5M14 11v5"></path></symbol>
+<symbol id="i-eye" viewbox="0 0 24 24"><path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6S2 12 2 12Z"></path><circle cx="12" cy="12" r="3"></circle></symbol>
+<symbol id="i-eyeoff" viewbox="0 0 24 24"><path d="m3 3 18 18M10.6 6.1c.5-.1 1-.1 1.4-.1 6.4 0 10 6 10 6a15 15 0 0 1-3.4 3.6M6.4 6.4C3.6 8.4 2 12 2 12s3.6 6 10 6c1.2 0 2.4-.2 3.4-.6M10 10a3 3 0 0 0 4 4"></path></symbol>
+<symbol id="i-zap" viewbox="0 0 24 24"><path d="m13 2-9 12h7l-1 8 10-12h-7l0-8Z"></path></symbol>
+<symbol id="i-bulb" viewbox="0 0 24 24"><path d="M9 18h6M10 21h4M8 15c-1.3-1.1-2-2.9-2-4.5A6 6 0 0 1 18 10.5c0 1.6-.7 3.4-2 4.5-.6.5-1 1.3-1 3H9c0-1.7-.4-2.5-1-3Z"></path></symbol>
+<symbol id="i-clock" viewbox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></symbol>
+<symbol id="i-settings" viewbox="0 0 24 24"><path d="M10 3h4l.6 2.3 2 1.1 2.2-.7 2 3.5-1.7 1.7v2.2l1.7 1.7-2 3.5-2.2-.7-2 1.1L14 21h-4l-.6-2.3-2-1.1-2.2.7-2-3.5 1.7-1.7v-2.2L3.2 9.2l2-3.5 2.2.7 2-1.1L10 3Z"></path><circle cx="12" cy="12" r="3"></circle></symbol>
+<symbol id="i-close" viewbox="0 0 24 24"><path d="M5 5l14 14M19 5 5 19"></path></symbol>
+<symbol id="i-shield" viewbox="0 0 24 24"><path d="M12 2 4 5v6c0 5.3 3.4 9 8 11 4.6-2 8-5.7 8-11V5l-8-3Z"></path><path d="m9 12 2 2 4-4"></path></symbol>
+<symbol id="i-menu" viewbox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"></path></symbol>
+<symbol id="i-link" viewbox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.1 0l2-2a5 5 0 0 0-7.1-7.1l-1.1 1.1M14 11a5 5 0 0 0-7.1 0l-2 2A5 5 0 0 0 12 20.1l1.1-1.1"></path></symbol>
+<symbol id="i-rotate" viewbox="0 0 24 24"><path d="M20 10a8 8 0 1 0 1 5M20 4v6h-6"></path></symbol>
+<symbol id="i-download" viewbox="0 0 24 24"><path d="M12 3v13m-5-5 5 5 5-5M4 18v3h16v-3"></path></symbol>
+<symbol id="i-wand" viewbox="0 0 24 24"><path d="m4 20 13-13 3 3L7 23l-3-3ZM14 4l.6-1.4L16 2l.6 1.4L18 4l-1.4.6L16 6l-.6-1.4L14 4ZM19 16l.5-1.5L21 14l.5 1.5L23 16l-1.5.5L21 18l-.5-1.5L19 16Z"></path></symbol>
 
-  <div class="app-shell">
-    <div id="overlay" class="mobile-overlay" hidden></div>
-    <aside class="sidebar" id="sidebar">
-      <div class="brand"><div class="brand-mark"><svg class="icon"><use href="#i-sparkle"/></svg></div><div><strong>MarketGenius<span>AI</span></strong><small>CAMPAIGN STUDIO</small></div></div>
-      <div class="sidebar-section-label">KHÔNG GIAN LÀM VIỆC</div>
-      <nav class="side-nav" aria-label="Điều hướng chính">
-        <button class="nav-item active" type="button" data-view="create"><svg class="icon"><use href="#i-grid"/></svg> Khám phá ý tưởng <span class="nav-dot"></span></button>
-        <button class="nav-item" type="button" data-view="shortlist"><svg class="icon"><use href="#i-bookmark"/></svg> Shortlist <span id="sideSavedCount" class="nav-count">0</span></button>
-        <button class="nav-item" type="button" data-view="history"><svg class="icon"><use href="#i-clock"/></svg> Lịch sử tạo <span class="nav-dot"></span></button>
-      </nav>
-      <div class="sidebar-section-label tools-label">TRỢ LÝ AI</div>
-      <section class="api-panel" id="apiPanel" aria-label="Lựa chọn sử dụng AI">
-        <div class="mode-choice-title">CHỌN CÁCH SỬ DỤNG AI</div>
-        <div class="ai-mode-switch" role="radiogroup" aria-label="Chế độ sử dụng AI">
-          <label class="ai-mode-option"><input type="radio" name="aiMode" value="guest" checked><span><strong>✦ AI có sẵn</strong><small>Không cần nhập API Key</small></span></label>
-          <label class="ai-mode-option"><input type="radio" name="aiMode" value="personal"><span><strong>🔑 AI cá nhân</strong><small>Dùng Gemini hoặc OpenAI của bạn</small></span></label>
-        </div>
-        <div id="guestAiSettings" class="ai-mode-panel" aria-label="AI có sẵn">
-          <div class="api-panel-head"><div class="api-symbol"><svg class="icon"><use href="#i-sparkle"/></svg></div><div><strong>AI do Nhất Be cung cấp</strong><small>Google Gemini · Tạo chiến dịch thật</small></div></div>
-          <p id="guestStatus" class="guest-status" role="status">Đang kiểm tra cấu hình AI có sẵn…</p>
-          <div id="guestTurnstile" class="guest-turnstile" aria-label="Xác minh an toàn trước khi dùng AI"></div>
-          <p class="guest-note">Không cần API Key. Mỗi yêu cầu sẽ dùng hạn mức AI của website; cần xác minh chống lạm dụng trước khi tạo.</p>
-        </div>
-        <div id="personalAiSettings" class="ai-mode-panel hidden" aria-label="AI cá nhân">
-        <div class="api-panel-head"><div class="api-symbol"><svg class="icon"><use href="#i-key"/></svg></div><div><strong>Kết nối AI của bạn</strong><small>Dùng API Key cá nhân</small></div></div>
-        <label class="field-label inverse" for="provider">Nền tảng AI</label>
-        <select id="provider" class="dark-input" autocomplete="off"><option value="gemini">Google Gemini</option><option value="openai">OpenAI</option></select>
-        <details class="api-guide" id="apiGuide" open>
-          <summary><svg class="icon"><use href="#i-key"/></svg><span id="apiGuideHeading">Hướng dẫn lấy Gemini API Key</span><svg class="icon guide-caret"><use href="#i-chev"/></svg></summary>
-          <div id="geminiGuide" class="guide-content">
-            <ol><li>Nhấn <strong>Mở Google AI Studio</strong> bên dưới và đăng nhập tài khoản Google.</li><li>Vào mục <strong>API Keys</strong>, chọn <strong>Create API key</strong> (nếu chưa có).</li><li>Sao chép khóa của bạn và dán vào ô <strong>API Key</strong> ở đây.</li></ol>
-            <a class="guide-link" href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer">Mở Google AI Studio ↗</a>
-          </div>
-          <div id="openaiGuide" class="guide-content hidden">
-            <ol><li>Nhấn <strong>Mở OpenAI API Keys</strong> và đăng nhập tài khoản OpenAI.</li><li>Chọn dự án, nhấn <strong>Create new secret key</strong> để tạo khóa.</li><li>Sao chép khóa và dán vào ô <strong>API Key</strong>. API OpenAI có thể yêu cầu thiết lập thanh toán riêng với ChatGPT.</li></ol>
-            <a class="guide-link" href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer">Mở OpenAI API Keys ↗</a>
-          </div>
-          <p class="guide-security">Không chia sẻ API Key trong bình luận, ảnh chụp màn hình hoặc GitHub. Việc gọi API có thể phát sinh phí theo tài khoản của bạn.</p>
-        </details>
-        <label class="field-label inverse" for="apiKey">API Key</label>
-        <div class="key-wrap"><input id="apiKey" class="dark-input" type="password" placeholder="Dán API Key tại đây..." autocomplete="off" spellcheck="false" /><button id="toggleKey" class="icon-button dark-icon" aria-label="Hiện API Key" type="button"><svg class="icon"><use href="#i-eye"/></svg></button></div>
-        <div class="model-label-line"><label class="field-label inverse" for="model">Model AI (theo API Key)</label><span class="model-count" id="modelCount">0 model</span></div>
-        <div class="model-select-wrap"><select id="model" class="dark-input" aria-describedby="modelHint" autocomplete="off" disabled><option value="">Nhập API Key để hiện model</option></select><svg class="icon"><use href="#i-chev"/></svg></div>
-        <p id="modelHint" class="model-hint">Chỉ hiển thị model đã xác minh tạo nội dung thành công bằng API Key này.</p>
-        <button id="loadModelsBtn" class="fetch-models-btn" type="button"><svg class="icon"><use href="#i-rotate"/></svg><span>Tải danh sách model từ API Key</span></button>
-        <button id="verifyModelsBtn" class="verify-models-btn" type="button" disabled>✓ Xác minh model dùng được</button>
-        <progress id="verifyProgress" class="verify-progress" value="0" max="100" aria-label="Tiến độ xác minh model" hidden></progress>
-        <button id="stopVerifyBtn" class="text-link" type="button" hidden>Dừng xác minh sau yêu cầu hiện tại</button>
-        <p class="model-cost-warning">Mỗi lần xác minh gửi yêu cầu tạo nội dung thật và có thể tính phí hoặc hao quota. Chỉ model xác minh thành công mới được hiển thị.</p>
-        <p id="modelListInfo" class="model-list-info" role="status">Dán API Key để lấy ứng viên, rồi nhấn Xác minh model trước khi sử dụng.</p>
-        <button id="connectBtn" class="connect-button" type="button"><svg class="icon"><use href="#i-link"/></svg><span>Kiểm tra kết nối</span></button>
-        <button id="clearKeyBtn" class="text-link" type="button">Xóa API Key khỏi trang</button>
-        <div id="apiStatus" class="api-status" role="status"><span class="status-dot"></span><span>Chưa kết nối · Có thể thử demo</span></div>
-        <p class="privacy-note">Key chỉ được giữ trong tab đang mở và gửi qua HTTPS đến Function của website để gọi AI. Không lưu vào localStorage.</p>
-        </div>
-      </section>
-      <div class="sidebar-bottom">
-        <div class="help-illustration">✦ <span>AI</span> ✳</div>
-        <strong>Ý tưởng tốt bắt đầu từ một câu hỏi.</strong>
-        <p>Biến brief thành chiến dịch trong vài phút.</p>
-        <details class="creator-signature">
-          <summary aria-label="Xem thông tin người phát triển MarketGenius AI">
-            <span class="creator-monogram" aria-hidden="true">NB</span>
-            <span class="creator-identity"><small>MADE WITH <span aria-hidden="true">♥</span> BY</small><b>Nhất Be</b></span>
-            <span class="creator-spark" aria-hidden="true">✦</span>
-          </summary>
-          <p class="creator-about">MarketGenius AI được phát triển bởi <b>Nhất Be</b> cho Vibe Coding 2026. Cảm ơn bạn đã trải nghiệm!</p>
-        </details>
-        <span class="version">VIBE CODING 2026 • v1.4.2</span>
-      </div>
-    </aside>
-
-    <div class="workspace">
-      <header class="topbar"><div class="topbar-left"><button id="menuBtn" type="button" class="icon-button mobile-menu" aria-label="Mở menu"><svg class="icon"><use href="#i-menu"/></svg></button><div class="breadcrumb"><span>Workspace</span><span class="breadcrumb-sep">/</span><b id="breadcrumbPage">Khám phá ý tưởng</b></div></div><div class="topbar-right"><span id="modeBadge" class="mode-badge"><span class="tiny-pulse"></span> Demo sẵn sàng</span><div class="avatar" aria-label="Tài khoản cá nhân">MG</div></div></header>
-      <main>
-        <section id="createView" class="page-view active">
-          <div class="page-heading"><div><div class="eyebrow"><svg class="icon"><use href="#i-sparkle"/></svg> SMART CAMPAIGN GENERATOR</div><h1>Ý tưởng lớn. <span>Khởi đầu dễ dàng.</span></h1><p>Cho AI biết bạn đang bán gì. Nhận ngay 5 chiến dịch marketing cá nhân hóa, kèm kế hoạch 4 tuần.</p></div><div class="page-date"><svg class="icon"><use href="#i-clock"/></svg> Campaign Planner</div></div>
-          <div class="hero-banner"><div class="hero-text"><span class="hero-chip">✦ ĐƯỢC THIẾT KẾ CHO MARKETER</span><h2>Từ brief đến <em>breakthrough.</em></h2><p>Không cần bắt đầu từ trang giấy trắng. Khám phá những hướng triển khai mới mẻ cho sản phẩm của bạn.</p><a href="#briefForm" class="hero-link">Tạo chiến dịch của bạn <svg class="icon"><use href="#i-arrow"/></svg></a></div><div class="hero-art" aria-hidden="true"><div class="art-orbit orbit-one"></div><div class="art-orbit orbit-two"></div><div class="art-core">✦</div><div class="art-float float-a">AI INSIGHT <b>↗</b></div><div class="art-float float-b">CREATIVE <b>✦</b></div><div class="art-stars">✧ ✦ ✧</div></div></div>
-          <div class="stats-row"><div class="stat-tile"><div class="stat-icon purple"><svg class="icon"><use href="#i-bulb"/></svg></div><div><strong>05</strong><span>Ý tưởng mỗi lần</span></div></div><div class="stat-tile"><div class="stat-icon blue"><svg class="icon"><use href="#i-clock"/></svg></div><div><strong>04 tuần</strong><span>Timeline chi tiết</span></div></div><div class="stat-tile"><div class="stat-icon orange"><svg class="icon"><use href="#i-bookmark"/></svg></div><div><strong id="dashboardSavedCount">00</strong><span>Chiến dịch đã lưu</span></div></div></div>
-          <section class="form-card" id="briefForm"><div class="section-heading"><div><div class="section-icon"><svg class="icon"><use href="#i-wand"/></svg></div><div><span class="section-overline">BƯỚC 01 · CHUẨN BỊ BRIEF</span><h2>Thông tin chiến dịch</h2><p>Điền một vài thông tin để AI hiểu đúng nhu cầu.</p></div></div><div class="form-tag">✦ AI-assisted</div></div>
-            <form id="campaignForm" novalidate>
-              <div class="form-grid"><div class="form-field"><label for="industry">Ngành hàng <span class="required">*</span></label><div class="select-wrap"><select id="industry" required><option value="">Chọn ngành hàng</option><option>Mỹ phẩm & làm đẹp</option><option>Thời trang & phụ kiện</option><option>Đồ ăn & thức uống</option><option>Phụ kiện điện thoại</option><option>Giáo dục & đào tạo</option><option>Du lịch & lưu trú</option><option>Công nghệ & điện tử</option><option>Sức khỏe & chăm sóc cá nhân</option><option>Gia dụng & đời sống</option><option value="Khác">Khác (ghi ở ô mô tả sản phẩm)</option></select><svg class="icon"><use href="#i-chev"/></svg></div></div>
-              <div class="form-field"><label for="product">Tên sản phẩm / dịch vụ <span class="required">*</span></label><input type="text" id="product" maxlength="120" placeholder="VD: Trà thảo mộc Mộc An" required /></div>
-              <div class="form-field"><label for="budget">Mức ngân sách <span class="required">*</span></label><div class="select-wrap"><select id="budget" required><option value="">Chọn mức ngân sách</option><option value="Thấp">Thấp — Ưu tiên tiết kiệm</option><option value="Trung bình">Trung bình — Cân bằng chi phí</option><option value="Cao">Cao — Mở rộng quy mô</option></select><svg class="icon"><use href="#i-chev"/></svg></div></div>
-              <div class="form-field"><label for="goal">Mục tiêu chiến dịch <span class="required">*</span></label><div class="select-wrap"><select id="goal" required><option value="">Chọn mục tiêu</option><option>Tăng doanh số bán hàng</option><option>Tăng nhận diện thương hiệu</option><option>Thu hút khách hàng tiềm năng</option><option>Tăng tương tác trên mạng xã hội</option><option>Ra mắt sản phẩm mới</option><option>Giữ chân khách hàng cũ</option></select><svg class="icon"><use href="#i-chev"/></svg></div></div>
-              <div class="form-field"><label for="audience">Khách hàng mục tiêu <span class="optional">(tùy chọn)</span></label><input type="text" id="audience" maxlength="180" placeholder="VD: Nữ 18–30 tuổi, thích làm đẹp" /></div>
-              <div class="form-field"><label for="budgetAmount">Ngân sách thực tế <span class="optional">(tùy chọn, VNĐ)</span></label><input type="number" min="0" max="1000000000000" step="100000" id="budgetAmount" placeholder="VD: 10000000" /></div>
-              <div class="form-field full"><label for="usp">Điểm nổi bật / thông tin thêm <span class="optional">(tùy chọn)</span></label><textarea id="usp" rows="2" maxlength="500" placeholder="VD: Sản phẩm organic, giao toàn quốc, khách hàng quan tâm sức khỏe..."></textarea></div></div>
-              <div class="form-footer"><div class="form-notice"><svg class="icon"><use href="#i-shield"/></svg><span id="aiFormNotice">Chọn AI có sẵn để tạo nội dung thật mà không phải nhập API Key. Chế độ Demo vẫn dùng được.</span></div><div class="form-actions"><button id="demoBtn" class="btn btn-secondary" type="button"><svg class="icon"><use href="#i-zap"/></svg> Thử demo</button><button id="generateBtn" class="btn btn-primary" type="submit"><svg class="icon"><use href="#i-sparkle"/></svg> Tạo 5 ý tưởng <svg class="icon"><use href="#i-arrow"/></svg></button></div></div>
-            </form>
-          </section>
-          <section id="resultsSection" class="results-section hidden" aria-live="polite"><div class="results-heading"><div><div class="section-overline">BƯỚC 02 · KHÁM PHÁ</div><h2>Chiến dịch dành cho bạn <span class="result-count">05</span></h2><p id="resultsSubtitle">Các ý tưởng được đề xuất theo brief của bạn.</p></div><div class="results-actions"><span id="sourceTag" class="source-tag">DEMO</span><button id="regenerateBtn" class="btn btn-outline small" type="button"><svg class="icon"><use href="#i-rotate"/></svg> Tạo lại</button></div></div><div id="ideasGrid" class="ideas-grid"></div><div class="export-row"><button type="button" id="exportCurrentBtn" class="btn btn-outline small">⇩ Xuất PDF cả 5 chiến dịch</button></div></section>
-          <footer class="page-footer">MarketGenius AI <span>•</span> Made with <span class="footer-heart" aria-label="tình yêu">♥</span> by <strong class="footer-author">Nhất Be</strong> <span>•</span> Vibe Coding 2026</footer>
-        </section>
-
-        <section id="shortlistView" class="page-view"><div class="page-heading shortlist-heading"><div><div class="eyebrow"><svg class="icon"><use href="#i-bookmark"/></svg> YOUR CREATIVE COLLECTION</div><h1>Shortlist <span>của bạn.</span></h1><p>Lưu giữ những ý tưởng tốt nhất và chia sẻ kế hoạch với đồng đội.</p></div></div><div class="shortlist-toolbar"><div><strong>Chiến dịch đã lưu</strong><p id="shortlistDescription">Danh sách lưu trong trình duyệt này.</p></div><button type="button" id="exportShortlistBtn" class="btn btn-outline small">⇩ Xuất PDF</button><button type="button" id="copyAllBtn" class="btn btn-outline small"><svg class="icon"><use href="#i-copy"/></svg> Copy tất cả</button><button type="button" id="openPlannerBtn" class="btn btn-primary small" aria-controls="smartPlanner" aria-expanded="false">✦ Lập kế hoạch 4 tuần</button></div>
-          <section id="smartPlanner" class="smart-planner hidden" aria-label="Smart Campaign Planner">
-            <div class="planner-heading"><div><span class="section-overline">SMART CAMPAIGN PLANNER · ĐIỂM WOW</span><h2>Kế hoạch Marketing tổng hợp 4 tuần</h2><p>Chọn những chiến dịch đã lưu để gộp nhiệm vụ theo tuần, theo dõi tiến độ và chia sẻ nhanh. Không cần gọi AI thêm.</p></div><button id="closePlannerBtn" type="button" class="planner-close" aria-label="Đóng Smart Planner">✕</button></div>
-            <div class="planner-settings"><div class="planner-setting-head"><strong>Chiến dịch tham gia kế hoạch</strong><span id="plannerSelectionCount" class="planner-selected-count">0 chiến dịch</span></div>
-              <div class="planner-filters"><label for="plannerBudgetFilter">Lọc theo ngân sách gốc
-                <select id="plannerBudgetFilter"><option value="all">Tất cả mức ngân sách</option><option value="Thấp">Thấp</option><option value="Trung bình">Trung bình</option><option value="Cao">Cao</option><option value="Chưa phân loại">Chưa phân loại (bản lưu cũ)</option></select>
-              </label><label class="planner-select-all"><input id="plannerSelectAll" type="checkbox" checked> Chọn tất cả kết quả đang lọc</label></div>
-              <div id="plannerCampaigns" class="planner-campaign-list"></div><p class="planner-note">Bộ lọc chỉ giúp tìm chiến dịch để tích chọn. Kế hoạch bên dưới tổng hợp đúng các chiến dịch đã chọn.</p></div>
-            <div class="planner-overview"><div><strong>Lịch triển khai</strong><span id="plannerProgressLabel">0/0 đầu việc hoàn thành</span></div><div class="planner-progress-rail"><div id="plannerProgressBar" class="planner-progress-fill" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Tiến độ kế hoạch"></div></div></div>
-            <div id="plannerWeekTabs" class="planner-week-tabs" role="tablist" aria-label="Tuần của kế hoạch"><button type="button" class="active" data-planner-week="0" role="tab" aria-selected="true">Tuần 01</button><button type="button" data-planner-week="1" role="tab" aria-selected="false">Tuần 02</button><button type="button" data-planner-week="2" role="tab" aria-selected="false">Tuần 03</button><button type="button" data-planner-week="3" role="tab" aria-selected="false">Tuần 04</button></div>
-            <div id="plannerWeekContent" class="planner-week-content" aria-live="polite"></div>
-            <p id="plannerBudgetNotice" class="planner-budget-note"></p>
-            <div class="planner-share-area"><div><strong>Xuất và chia sẻ kế hoạch</strong><p>Copy nguyên văn bản hoặc Markdown; Zalo/Telegram sẽ mở chat để bạn chọn người nhận và tự gửi.</p></div><div class="planner-actions"><button id="plannerCopyTextBtn" type="button" class="btn btn-outline small">Copy Text</button><button id="plannerCopyMarkdownBtn" type="button" class="btn btn-outline small">Copy Markdown</button><button id="plannerExportPdfBtn" type="button" class="btn btn-primary small">⇩ Xuất PDF</button><button id="plannerShareBtn" type="button" class="btn btn-outline small">↗ Chia sẻ</button><button id="plannerZaloBtn" type="button" class="btn btn-outline small">Zalo</button><button id="plannerTelegramBtn" type="button" class="btn btn-outline small">Telegram</button></div></div>
-          </section>
-<div id="savedGrid" class="ideas-grid"></div><div id="shortlistEmpty" class="empty-state"><div class="empty-icon"><svg class="icon"><use href="#i-bookmark"/></svg></div><h3>Chưa có ý tưởng nào được lưu</h3><p>Khi tìm thấy một chiến dịch phù hợp, nhấn “Lưu shortlist” để quản lý tại đây.</p><button type="button" id="goCreateBtn" class="btn btn-primary"><svg class="icon"><use href="#i-sparkle"/></svg> Khám phá ý tưởng</button></div><footer class="page-footer">MarketGenius AI <span>•</span> Made with <span class="footer-heart" aria-label="tình yêu">♥</span> by <strong class="footer-author">Nhất Be</strong> <span>•</span> Vibe Coding 2026</footer></section>
-        <section id="historyView" class="page-view">
-          <div class="page-heading shortlist-heading"><div><div class="eyebrow">✦ YOUR CAMPAIGN ARCHIVE</div><h1>Lịch sử <span>chiến dịch.</span></h1><p>Xem lại các lần AI tạo 5 ý tưởng, mở tiếp và xuất báo cáo bất cứ lúc nào.</p></div></div>
-          <div class="shortlist-toolbar"><div><strong>Lịch sử đã lưu</strong><p id="historyCount">0 lần tạo được lưu trên thiết bị này</p></div><span class="local-only-tag">Chỉ lưu trên trình duyệt, không lưu API Key</span></div>
-          <div id="historyList" class="history-list"></div><div id="historyEmpty" class="empty-state"><h3>Chưa có lịch sử</h3><p>Thử tạo chiến dịch Demo hoặc AI thật, kết quả sẽ tự lưu tại đây.</p></div>
-          <footer class="page-footer">MarketGenius AI <span>•</span> Made with <span class="footer-heart" aria-label="tình yêu">♥</span> by <strong class="footer-author">Nhất Be</strong> <span>•</span> Vibe Coding 2026</footer>
-        </section>
-      </main>
+<symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></symbol>
+<symbol id="i-bars" viewBox="0 0 24 24"><path d="M3 3v18h18M7 16v-4M12 16V8M17 16V5"/></symbol>
+<symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></symbol>
+<symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 3-9 5 9 5 9-5-9-5ZM3 12l9 5 9-5M3 16l9 5 9-5"/></symbol>
+<symbol id="i-file-text" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Z"/><path d="M14 2v6h6M8 13h8M8 17h8"/></symbol>
+<symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol>
+</svg>
+<div class="app-shell">
+<div class="mobile-overlay" hidden id="overlay"></div>
+<header class="site-header" role="banner">
+  <div class="site-header-inner">
+    <button id="menuBtn" class="site-menu-toggle" type="button" aria-label="Mở menu điều hướng" aria-controls="sidebar" aria-expanded="false"><svg class="icon" aria-hidden="true"><use href="#i-menu"></use></svg></button>
+    <a href="#home" class="site-brand" data-view="home" aria-label="MarketGenius AI – Trang chủ">
+      <span class="brand-mark"><picture><source srcset="/assets/marketgenius-symbol.webp?v=2400" type="image/webp"/><img src="/assets/marketgenius-symbol.png" width="40" height="40" alt=""></picture></span>
+      <span class="site-brand-name"><strong>MarketGenius <em>AI</em></strong><small>TRỢ LÝ MARKETING</small></span>
+    </a>
+    <nav id="sidebar" class="site-nav studio-top-nav" aria-label="Điều hướng website">
+      <div class="site-nav-mobile-heading"><strong>Điều hướng</strong><button id="navClose" class="site-nav-close" type="button" aria-label="Đóng menu"><svg class="icon" aria-hidden="true"><use href="#i-close"></use></svg></button></div>
+      <a href="#home" class="nav-item active" data-view="home" aria-current="page">Trang chủ</a>
+      <a href="#create" class="nav-item" data-view="create">Tạo chiến dịch</a>
+      <a href="#shortlist" class="nav-item" data-view="shortlist">Ý tưởng đã lưu <span class="nav-count" id="sideSavedCount">0</span></a>
+      <a href="#history" class="nav-item" data-view="history">Lịch sử</a>
+    </nav>
+    <div class="site-actions">
+      <span class="mode-badge" id="modeBadge" role="status" aria-live="polite"><span class="tiny-pulse"></span> AI chưa khả dụng</span>
+      <a href="#create" class="header-create-btn" data-view="create">Bắt đầu miễn phí <span aria-hidden="true">↗</span></a>
     </div>
   </div>
-  <div id="toastStack" class="toast-stack" aria-live="polite"></div>
-  <div id="compareTray" class="compare-tray hidden"><strong>So sánh: <span id="compareCount">0/3 chiến dịch</span></strong><button type="button" id="compareNowBtn" class="btn btn-primary small">So sánh ngay</button><button type="button" id="clearCompareBtn" class="btn btn-outline small">Xóa chọn</button></div>
-  <div id="aiAlert" class="ai-alert hidden" role="alert"><div class="ai-alert-top"><h3 id="aiErrorTitle">Không kết nối được AI</h3><button type="button" id="closeAiAlert" aria-label="Đóng thông báo">✕</button></div><p id="aiErrorBody"></p><details><summary>Xem chi tiết kỹ thuật</summary><p id="aiErrorDetail"></p></details><div class="ai-alert-actions"><a id="quotaLink" href="https://ai.dev/rate-limit" target="_blank" rel="noopener noreferrer" class="hidden">Kiểm tra hạn mức Gemini ↗</a><button type="button" id="retryAfterErrorBtn" class="btn btn-outline small">Thử lại</button></div></div>
-  <div id="progressPanel" class="generation-progress hidden" role="status"><span class="spin">✦</span><span id="progressLabel">AI đang lên ý tưởng</span><button type="button" id="cancelGenerationBtn">Hủy yêu cầu</button></div>
-  <dialog id="editDialog" class="studio-dialog" aria-label="Chỉnh sửa chiến dịch"><div class="studio-dialog-head"><div><span class="section-overline">CHỈNH SỬA KẾ HOẠCH</span><h2>Cá nhân hóa chiến dịch</h2></div><button type="button" onclick="this.closest('dialog').close()" aria-label="Đóng">✕</button></div><form id="editForm"></form></dialog>
-  <dialog id="compareDialog" class="studio-dialog comparison-dialog" aria-label="So sánh chiến dịch"><div id="comparisonContent"></div></dialog>
-  <div id="printReport" aria-hidden="true"></div>
-  <dialog id="detailsDialog" class="details-dialog" aria-label="Chi tiết chiến dịch"><div id="detailsContent"></div></dialog>
-  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
-  <script src="app.js" defer></script>
-  <script src="studio.js" defer></script>
-  <script src="planner.js" defer></script>
+</header>
+<div class="workspace">
+<main>
+<section aria-labelledby="homeTitle" class="page-view active" id="homeView">
+<div class="studio-home-hero">
+<div class="studio-home-copy"><span class="studio-overline"><span class="studio-overline-dot"></span> LẬP KẾ HOẠCH MARKETING</span>
+<h1 id="homeTitle">Chiến dịch tốt<br/>bắt đầu từ <span>ý tưởng lớn.</span></h1>
+<p class="studio-home-lead">MarketGenius AI biến thông tin sản phẩm của bạn thành <strong>5 chiến lược Marketing</strong> rõ ràng, có KPI và lịch triển khai 4 tuần. Từ bản brief nhỏ đến kế hoạch hành động chuyên nghiệp.</p>
+<div class="studio-home-actions"><button class="home-main-cta" data-view="create" type="button">Bắt đầu tạo chiến dịch <span aria-hidden="true">↗</span></button><button class="home-ghost-cta" data-view="home" data-scroll="how-it-works" type="button">Tìm hiểu chức năng <span aria-hidden="true">→</span></button></div>
+<div class="studio-trustline"><span><b>✓</b> AI có sẵn, không cần key</span><span><b>✓</b> 5 ý tưởng / lần tạo</span><span><b>✓</b> Demo miễn phí</span></div>
+</div>
+<div aria-label="Kế hoạch chiến dịch minh họa" class="studio-home-visual"><article class="mg-sample-card"><div class="mg-sample-label">BẢN KẾ HOẠCH MẪU <span>Ví dụ minh họa — không phải dữ liệu đo lường</span></div><h2>7 ngày trải nghiệm sản phẩm</h2><p>Kênh triển khai: TikTok · Facebook Reels</p><div class="mg-sample-kpis"><span><b>Lượt xem</b><small>KPI tham khảo</small></span><span><b>CTR</b><small>KPI tham khảo</small></span><span><b>Chuyển đổi</b><small>KPI tham khảo</small></span></div><ol class="mg-sample-weeks"><li><b>Tuần 1</b> Nghiên cứu khách hàng & lập brief</li><li><b>Tuần 2</b> Sản xuất và đăng nội dung thử</li><li><b>Tuần 3</b> Tối ưu nội dung có hiệu quả</li><li><b>Tuần 4</b> Tổng hợp kết quả và cải tiến</li></ol></article></div></div>
+<div class="home-path-head"><div><span class="studio-overline">CHỌN CÁCH BẮT ĐẦU</span><h2>Bạn muốn sáng tạo theo cách nào?</h2></div><p>Chọn trải nghiệm phù hợp với nhu cầu, mọi con đường đều tạo đủ 5 chiến dịch.</p></div>
+<div class="home-path-grid">
+<button class="home-path-card" data-start-mode="quick" type="button"><span class="path-icon purple"><svg class="icon"><use href="#i-zap"></use></svg></span><span class="path-label">NHANH · DỄ DÙNG</span><strong>Gợi ý nhanh</strong><span class="path-desc">Nhập sản phẩm → chọn mẫu Marketing → chỉnh sửa thông tin đã gợi ý.</span><span class="path-action">Bắt đầu nhanh <b>↗</b></span></button>
+<button class="home-path-card" data-start-mode="advanced" type="button"><span class="path-icon cyan">▣</span><span class="path-label">CHUYÊN NGHIỆP · CÓ CĂN CỨ</span><strong>Lập kế hoạch chuyên sâu</strong><span class="path-desc">Thêm ngân sách thực tế, KPI, nguồn lực và giới hạn ưu đãi để có đề xuất khả thi hơn.</span><span class="path-action">Lập kế hoạch <b>↗</b></span></button>
+<button class="home-path-card" data-view="shortlist" type="button"><span class="path-icon peach">▤</span><span class="path-label">TỔNG HỢP · CHIA SẺ</span><strong>Không gian chiến dịch</strong><span class="path-desc">Quản lý Shortlist, so sánh ý tưởng, theo dõi lịch 4 tuần và xuất PDF.</span><span class="path-action">Mở Shortlist <b>↗</b></span></button>
+</div>
+<section class="home-guide" id="how-it-works" aria-label="Hướng dẫn và khả năng của MarketGenius AI">
+<div class="about-section-title"><span>GIÁ TRỊ CỐT LÕI</span><h2>Website giúp bạn làm gì?</h2></div>
+<div class="about-feature-grid"><article><b>01</b><h3>Nhập brief dễ dàng</h3><p>Nhập tên sản phẩm để chọn mẫu Marketing tự điền hoặc khai báo thêm các dữ liệu chuyên sâu thực tế.</p></article><article><b>02</b><h3>Nhận 5 chiến dịch</h3><p>AI đề xuất các hướng Marketing khác biệt, tên chiến dịch, kênh triển khai, nội dung chính và thông điệp.</p></article><article><b>03</b><h3>Timeline 4 tuần</h3><p>Mỗi phương án có công việc theo 4 tuần, KPI tham khảo, ngân sách và rủi ro cần lưu ý.</p></article><article><b>04</b><h3>Lưu vào Shortlist</h3><p>Chọn ý tưởng yêu thích, xem, chỉnh sửa, xóa và sao chép lại nội dung trên thiết bị của bạn.</p></article><article><b>05</b><h3>Lập kế hoạch &amp; chia sẻ</h3><p>Smart Planner tổng hợp các chiến dịch đã chọn, theo dõi tiến độ, xuất PDF và sao chép Text/Markdown.</p></article><article><b>06</b><h3>AI có sẵn và Demo</h3><p>Dùng Gemini do website cung cấp sau khi xác minh, không cần API Key. Demo sử dụng dữ liệu mô phỏng.</p></article></div>
+<div class="about-section-title"><span>CÁCH SỬ DỤNG</span><h2>4 bước từ ý tưởng đến hành động</h2></div>
+<div class="about-steps"><div><span>1</span><p><strong>Chọn AI</strong><br/>Gemini do website cung cấp; có thể thử Demo không cần xác minh.</p></div><div><span>2</span><p><strong>Nhập brief</strong><br/>Nhập sản phẩm, chọn một mẫu có sẵn rồi chỉnh sửa form Chuyên sâu; vẫn có thể tự điền thủ công.</p></div><div><span>3</span><p><strong>Xem 5 phương án</strong><br/>Kiểm tra kênh, thông điệp, KPI, ngân sách và timeline.</p></div><div><span>4</span><p><strong>Lưu &amp; lập kế hoạch</strong><br/>Thêm vào Shortlist, dùng Smart Planner, xuất PDF hoặc chia sẻ.</p></div></div>
+<div class="about-disclaimer"><svg class="icon"><use href="#i-shield"></use></svg><div><strong>Minh bạch về AI và dữ liệu</strong><p>Kế hoạch và KPI là đề xuất để tham khảo, không bảo đảm doanh số. Chế độ Demo là dữ liệu mô phỏng, khác với AI thật. Shortlist/lịch sử được lưu trong trình duyệt đang dùng; Khách hàng không nhập API Key. Khóa Gemini của chủ website chỉ được cấu hình ở máy chủ.</p></div></div>
+</section>
+<footer class="page-footer">MarketGenius AI <span>•</span> Made with <span class="footer-heart">♥</span> by <strong class="footer-author">Nhất Be</strong> <span>•</span> Marketing made smarter</footer>
+</section><section class="page-view" id="createView"><div class="builder-page-header">
+<div><span class="studio-overline"><span class="studio-overline-dot"></span> CÔNG CỤ TẠO CHIẾN DỊCH · BƯỚC 01 — 02</span><h1>Thiết kế chiến dịch <span>cùng AI.</span></h1><p>Hoàn thiện brief ở bên trái. 5 chiến dịch, KPI, timeline 4 tuần và nút lưu sẽ xuất hiện tại không gian bên phải.</p></div>
+<button class="builder-how-btn" data-view="home" data-scroll="how-it-works" type="button">Cách hoạt động <span aria-hidden="true">↗</span></button>
+</div><div class="builder-layout"><div class="builder-controls"><div class="builder-ai-config"><div class="builder-ai-intro"><div><span class="micro-step">THIẾT LẬP 01</span><h2>Trợ lý AI có sẵn</h2><p>Gemini do Nhất Be cung cấp · Không cần API Key. Hoặc thử Demo miễn phí.</p></div><span class="ai-intro-badge"> AI có sẵn</span></div><section aria-label="Lựa chọn sử dụng AI" class="api-panel" id="apiPanel">
+<div aria-label="AI có sẵn" class="ai-mode-panel" id="guestAiSettings">
+<div class="api-panel-head"><div class="api-symbol"><svg class="icon"><use href="#i-target"></use></svg></div><div><strong>AI do Nhất Be cung cấp</strong><small>Google Gemini · Tạo chiến dịch thật</small></div></div>
+<p class="guest-status" id="guestStatus" role="status">Đang kiểm tra cấu hình AI có sẵn…</p>
+<div aria-label="Xác minh an toàn trước khi dùng AI" class="guest-turnstile" id="guestTurnstile"></div>
+<p class="guest-note">Không cần API Key. Mỗi yêu cầu sẽ dùng hạn mức AI của website; cần xác minh chống lạm dụng trước khi tạo.</p>
+</div>
+</section></div><section class="form-card" id="briefForm"><div class="section-heading"><div><div class="section-icon"><svg class="icon"><use href="#i-layers"></use></svg></div><div><span class="section-overline">BƯỚC 01 · CHUẨN BỊ BRIEF</span><h2>Thông tin chiến dịch</h2><p>Điền một vài thông tin để AI hiểu đúng nhu cầu.</p></div></div><div class="form-tag">AI hỗ trợ</div></div>
+<form id="campaignForm" novalidate="">
+<fieldset class="brief-mode-picker"><legend>CHỌN MỨC ĐỘ LẬP KẾ HOẠCH</legend>
+<label class="brief-mode-option"><input checked="" name="briefMode" type="radio" value="quick"/><span><strong>⚡ Gợi ý nhanh</strong><small>Nhập sản phẩm · Chọn template · Chỉnh sửa</small></span></label>
+<label class="brief-mode-option"><input name="briefMode" type="radio" value="advanced"/><span><strong>▣ Chuyên sâu</strong><small>Ngân sách, nguồn lực, KPI và giới hạn thực tế</small></span></label>
+</fieldset>
+<p class="brief-mode-note" id="briefModeNotice">Nhập tên sản phẩm, AI có sẵn sẽ tạo 4 template phù hợp. Chọn một mẫu để điền sang Chuyên sâu rồi chỉnh sửa.</p>
+<div class="form-grid"><div class="form-field"><label for="industry">Ngành hàng <span class="required">*</span></label><div class="select-wrap"><select id="industry" required=""><option value="">Chọn ngành hàng</option><option>Mỹ phẩm &amp; làm đẹp</option><option>Thời trang &amp; phụ kiện</option><option>Đồ ăn &amp; thức uống</option><option>Phụ kiện điện thoại</option><option>Giáo dục &amp; đào tạo</option><option>Du lịch &amp; lưu trú</option><option>Công nghệ &amp; điện tử</option><option>Sức khỏe &amp; chăm sóc cá nhân</option><option>Gia dụng &amp; đời sống</option><option value="Khác">Khác (ghi ở ô mô tả sản phẩm)</option></select><svg class="icon"><use href="#i-chev"></use></svg></div></div>
+<div class="form-field"><label for="product">Tên sản phẩm / dịch vụ <span class="required">*</span></label><input id="product" maxlength="120" placeholder="VD: Trà thảo mộc Mộc An" required="" type="text"/></div>
+<section id="smartTemplatePicker" class="smart-template-panel hidden" aria-label="Mẫu Marketing gợi ý" aria-live="polite">
+<div class="template-panel-head"><div><span class="template-eyebrow">GỢI Ý NHANH</span><h3>Chọn mẫu phù hợp với sản phẩm</h3><p id="templateProfileNote">AI có sẵn sẽ đề xuất 4 brief cá nhân hóa, bạn chọn mẫu và chỉnh sửa trước khi lập kế hoạch.</p></div><span class="template-panel-pill">AI có sẵn · Gemini</span></div>
+<div class="template-ai-controls">
+  <button id="generateAiTemplatesBtn" class="btn btn-primary small" type="button">Tạo 4 mẫu bằng AI</button>
+  <span id="templateAiStatus" role="status" aria-live="polite">Nhập tên sản phẩm; AI sẽ đề xuất mẫu sau khi xác minh.</span>
+</div>
+<div class="template-ai-verify"><div id="templateTurnstile" aria-label="Xác minh an toàn cho AI gợi ý template"></div></div>
+<div id="smartTemplateCards" class="smart-template-grid"></div>
+<button id="templateOfflineBtn" class="template-offline-btn hidden" type="button">Sử dụng mẫu cơ bản khi AI chưa sẵn sàng</button>
+<p class="template-privacy-note">Template do AI gợi ý theo tên sản phẩm và vẫn cần bạn kiểm tra, đồng thời hiển thị <strong>ví dụ chưa xác nhận</strong> ở những mục cần tham khảo. Giá bán, số liệu thật, các kênh đang sở hữu và chính sách ưu đãi phải do bạn xác nhận.</p>
+<div id="customTemplatePanel" class="custom-template-panel hidden"><div class="custom-template-head"><strong>Mẫu riêng đã lưu trên thiết bị</strong><small>Chỉ lưu thông tin Marketing trên trình duyệt này.</small></div><div id="customTemplateCards" class="smart-template-grid"></div></div>
+</section>
+<div class="form-field"><label for="budget">Mức ngân sách <span class="required">*</span></label><div class="select-wrap"><select id="budget" required=""><option value="">Chọn mức ngân sách</option><option value="Thấp">Thấp — Ưu tiên tiết kiệm</option><option value="Trung bình">Trung bình — Cân bằng chi phí</option><option value="Cao">Cao — Mở rộng quy mô</option></select><svg class="icon"><use href="#i-chev"></use></svg></div></div>
+<div class="form-field"><label for="goal">Mục tiêu chiến dịch <span class="required">*</span></label><div class="select-wrap"><select id="goal" required=""><option value="">Chọn mục tiêu</option><option>Tăng doanh số bán hàng</option><option>Tăng nhận diện thương hiệu</option><option>Thu hút khách hàng tiềm năng</option><option>Tăng tương tác trên mạng xã hội</option><option>Ra mắt sản phẩm mới</option><option>Giữ chân khách hàng cũ</option></select><svg class="icon"><use href="#i-chev"></use></svg></div></div>
+</div>
+
+<section aria-label="Thông tin lập kế hoạch chuyên sâu" class="advanced-brief hidden" id="advancedBrief">
+<div id="selectedTemplateBanner" class="selected-template-banner hidden" role="status"><span class="selected-template-icon">✓</span><div><strong id="selectedTemplateName">Đã áp dụng mẫu</strong><p id="selectedTemplateMeta">Các trường được gợi ý đã điền sẵn. Hãy kiểm tra và chỉnh sửa lại cho đúng doanh nghiệp.</p></div><button class="template-link-btn" id="changeTemplateBtn" type="button">Đổi mẫu</button></div>
+<div class="advanced-heading"><div><span>THÔNG TIN CHUYÊN SÂU</span><h3>Để chiến dịch khả thi hơn</h3><p>AI sẽ dùng các thông tin bạn xác nhận, thay vì tự giả định doanh nghiệp có ưu đãi, nhân sự hoặc dữ liệu khách hàng.</p></div><span class="advanced-mark">Có thể chỉnh sửa</span></div>
+<div class="advanced-grid">
+<div class="form-field full budget-scenario-section" id="budgetScenarioSection">
+  <fieldset class="budget-scenario-picker"><legend>CÁCH SỬ DỤNG NGÂN SÁCH</legend>
+    <label class="budget-scenario-option"><input type="radio" name="budgetScenario" value="alternatives" checked><span><strong>5 phương án độc lập</strong><small>AI đưa 5 lựa chọn. Chỉ triển khai một phương án, dùng tối đa số tiền nhập.</small></span></label>
+    <label class="budget-scenario-option"><input type="radio" name="budgetScenario" value="portfolio"><span><strong>1 kế hoạch gồm 5 hoạt động</strong><small>AI gợi ý 5 hoạt động bổ trợ nhau, chia sẻ cùng một tổng ngân sách.</small></span></label>
+  </fieldset>
+</div>
+<div class="form-field"><label for="budgetAmount">Ngân sách dự kiến (VNĐ) <span class="required">*</span></label><input id="budgetAmount" max="1000000000000" min="1000" placeholder="VD: 8.000.000" inputmode="numeric" autocomplete="off" data-money="vnd" type="text"><small class="field-hint" id="budgetScenarioHint">Mỗi phương án độc lập có thể sử dụng tối đa số tiền nhập. Không cộng cả 5.</small></div>
+<div class="form-field"><label for="sellingPrice">Giá bán một sản phẩm (VNĐ) <span class="optional">(nếu biết)</span></label><input id="sellingPrice" max="1000000000000" min="0" placeholder="VD: 35.000.000" inputmode="numeric" autocomplete="off" data-money="vnd" type="text"/></div>
+<div class="form-field"><label for="audience">Khách hàng mục tiêu <span class="optional">(tùy chọn)</span></label><input id="audience" maxlength="180" placeholder="VD: Nam/nữ 22–35 tuổi, muốn đổi máy" type="text"/></div>
+<div class="form-field"><label for="marketRegion">Thị trường / khu vực triển khai <span class="optional">(tùy chọn)</span></label><input id="marketRegion" maxlength="120" placeholder="VD: Hà Nội, bán online toàn quốc" type="text"/></div>
+<div class="form-field full"><label for="usp">Điểm nổi bật đã xác minh <span class="optional">(tùy chọn)</span></label><textarea id="usp" maxlength="500" placeholder="VD: Bảo hành chính hãng, có hàng thực tế, giao nội thành..." rows="2"></textarea></div>
+<div class="form-field"><label for="targetMetric">Mục tiêu định lượng 4 tuần <span class="optional">(nếu có)</span></label><input id="targetMetric" maxlength="150" placeholder="VD: 30 khách để lại số điện thoại" type="text"/></div>
+<div class="form-field"><label for="baseline">Số liệu hiện có <span class="optional">(nếu có)</span></label><input id="baseline" maxlength="170" placeholder="VD: 2.000 follower; 50 lượt inbox/tháng" type="text"/></div>
+<div class="form-field"><label for="teamCapacity">Nguồn lực triển khai</label><div class="select-wrap"><select id="teamCapacity"><option value="unknown">Chưa xác định nhân sự (chọn nếu chưa rõ)</option><option value="solo">1 người tự làm</option><option value="small">2–3 người</option><option value="medium">4–10 người</option><option value="agency">Đội chuyên trách/Agency</option></select><svg class="icon"><use href="#i-chev"></use></svg></div></div>
+<div class="form-field"><label for="customerData">Tệp khách hàng cũ được phép tiếp thị?</label><div class="select-wrap"><select id="customerData"><option value="none">Chưa có / chưa được phép sử dụng</option><option value="yes">Có, đã có quyền liên hệ phù hợp</option><option value="unknown">Chưa xác định</option></select><svg class="icon"><use href="#i-chev"></use></svg></div></div>
+<div class="form-field full hidden" id="customerCountWrap"><label for="customerCount">Số khách đủ điều kiện liên hệ <span class="optional">(tùy chọn)</span></label><input id="customerCount" max="100000000" min="0" placeholder="VD: 1200" step="1" type="number"/></div>
+<fieldset class="advanced-checks full"><legend>Kênh Marketing đang có / có thể triển khai</legend><div class="pill-checkboxes">
+<label><input name="ownedChannel" type="checkbox" value="Facebook"/> Facebook</label><label><input name="ownedChannel" type="checkbox" value="TikTok"/> TikTok</label><label><input name="ownedChannel" type="checkbox" value="Zalo OA"/> Zalo OA</label><label><input name="ownedChannel" type="checkbox" value="Website"/> Website</label><label><input name="ownedChannel" type="checkbox" value="Email"/> Email</label><label><input name="ownedChannel" type="checkbox" value="Shopee/TikTok Shop"/> Sàn TMĐT</label><label><input name="ownedChannel" type="checkbox" value="Cửa hàng trực tiếp"/> Cửa hàng trực tiếp</label>
+</div><small class="field-hint">Không chọn kênh nào nghĩa là cần đề xuất cách triển khai từ đầu, không mặc định đã có kênh.</small></fieldset>
+<fieldset class="advanced-checks full"><legend>Nguồn lực và chính sách đã xác nhận</legend><div class="pill-checkboxes">
+<label><input name="capability" type="checkbox" value="video"/> Có người/thiết bị sản xuất video</label><label><input name="capability" type="checkbox" value="koc"/> Có hợp tác KOC/KOL</label><label><input name="capability" type="checkbox" value="community"/> Có cộng đồng đang hoạt động</label><label><input name="capability" type="checkbox" value="tradeIn"/> Có thu cũ đổi mới</label><label><input name="capability" type="checkbox" value="installments"/> Có trả góp được xác nhận</label>
+</div><small class="field-hint">Chỉ tích những gì doanh nghiệp thực sự có. Chưa tích = AI không được dùng làm điều kiện chắc chắn.</small></fieldset>
+<div class="form-field"><label for="promotionType">Chính sách ưu đãi được phép</label><div class="select-wrap"><select id="promotionType"><option value="none">Chưa có / Không cho AI tự đề xuất giảm giá</option><option value="percent">Được giảm giá theo %</option><option value="fixed">Được giảm trực tiếp bằng VNĐ</option></select><svg class="icon"><use href="#i-chev"></use></svg></div></div>
+<div class="form-field hidden" id="promotionLimitWrap"><label for="promotionLimit">Giới hạn ưu đãi tối đa <span class="required">*</span></label><input id="promotionLimit" min="0" placeholder="VD: 10 (%) hoặc 500.000 (VNĐ)" step="1" type="number"/></div>
+</div>
+<div id="saveCustomTemplateBox" class="save-custom-template"><div><strong>♧ Dùng lại brief này lần sau</strong><p>Lưu các thông tin bạn đã chỉnh sửa thành mẫu riêng trong trình duyệt này, không lưu khóa AI.</p></div><div class="save-custom-controls"><input id="customTemplateName" type="text" maxlength="55" placeholder="Tên mẫu riêng (VD: Ra mắt son mới)" aria-label="Tên template riêng"><button id="saveCustomTemplateBtn" class="btn btn-outline small" type="button">Lưu mẫu của tôi</button></div></div>
+<div class="advanced-caveat"><strong>Ghi nhớ:</strong> Website lập kế hoạch dựa trên dữ liệu bạn cung cấp. KPI chưa có dữ liệu nền phải được đánh dấu là mục tiêu thử nghiệm; ưu đãi chưa xác nhận sẽ không được quảng cáo như thông tin có thật.</div>
+</section>
+<div class="form-footer"><div class="form-notice"><svg class="icon"><use href="#i-shield"></use></svg><span id="aiFormNotice">AI có sẵn tạo ý tưởng thật sau khi xác minh. Demo không gọi AI và luôn sử dụng được.</span></div><div class="form-actions"><button class="btn btn-secondary" id="demoBtn" type="button"><svg class="icon"><use href="#i-zap"></use></svg> Thử demo</button><button class="btn btn-primary" id="generateBtn" type="submit"><svg class="icon"><use href="#i-target"></use></svg> Tạo 5 ý tưởng <svg class="icon"><use href="#i-arrow"></use></svg></button></div></div>
+</form>
+</section></div><div class="builder-output"><div class="builder-empty-preview mg-empty-preview" id="builderEmpty"><div class="preview-topline"><span>BẢN XEM TRƯỚC MẪU</span><span>Chưa có dữ liệu chiến dịch</span></div><h2>Cấu trúc kế hoạch sẽ xuất hiện ở đây</h2><p>Điền thông tin chiến dịch bên trái để tạo kế hoạch thật.</p><div class="mg-skeleton-plan"><div><strong>Mục tiêu</strong><span class="mg-skeleton-line"></span></div><div><strong>Thông điệp chính</strong><span class="mg-skeleton-line"></span></div><div><strong>Kênh phân phối</strong><span class="mg-skeleton-line short"></span></div><div><strong>Phân bổ ngân sách</strong><span class="mg-skeleton-line"></span></div><div><strong>Lịch trình 4 tuần</strong><span class="mg-skeleton-line"></span><span class="mg-skeleton-line short"></span></div></div><small>Mẫu bố cục — không phải kết quả từ AI</small></div><section aria-live="polite" class="results-section hidden" id="resultsSection"><div class="results-heading"><div><div class="section-overline">BƯỚC 02 · KHÁM PHÁ</div><h2>Chiến dịch dành cho bạn <span class="result-count">05</span></h2><p id="resultsSubtitle">Các ý tưởng được đề xuất theo brief của bạn.</p></div><div class="results-actions"><span class="source-tag" id="sourceTag">DEMO</span><button class="btn btn-outline small" id="regenerateBtn" type="button"><svg class="icon"><use href="#i-rotate"></use></svg> Tạo lại</button></div></div><details class="marketing-glossary"><summary>Giải thích thuật ngữ Marketing thường gặp</summary><dl>
+<div><dt>Brief</dt><dd>Thông tin người dùng nhập để AI hiểu sản phẩm và mục tiêu.</dd></div>
+<div><dt>KPI</dt><dd>Chỉ số đo hiệu quả, chẳng hạn số khách hỏi mua hoặc số đơn.</dd></div>
+<div><dt>UGC</dt><dd>Nội dung do khách hàng hoặc cộng đồng tự tạo.</dd></div>
+<div><dt>KOC</dt><dd>Người chia sẻ trải nghiệm sản phẩm, có ảnh hưởng đến quyết định mua.</dd></div>
+<div><dt>Seeding</dt><dd>Chia sẻ và thảo luận có tổ chức; cần minh bạch, tránh đánh giá giả.</dd></div>
+</dl></details><div class="portfolio-summary hidden" id="portfolioSummary" aria-live="polite"></div><div class="google-grounding-attribution hidden" id="googleResearchAttribution"></div><div class="ideas-grid" id="ideasGrid"></div><div class="export-row"><button class="btn btn-outline small" id="exportCurrentBtn" type="button">⇩ Xuất PDF cả 5 chiến dịch</button></div></section></div></div><footer class="page-footer">MarketGenius AI <span>•</span> Made with <span aria-label="tình yêu" class="footer-heart">♥</span> by <strong class="footer-author">Nhất Be</strong> <span>•</span> Marketing made smarter</footer></section>
+<section class="page-view" id="shortlistView"><div class="page-heading shortlist-heading"><div><div class="eyebrow"><svg class="icon"><use href="#i-bookmark"></use></svg> Ý TƯỞNG ĐÃ CHỌN</div><h1>Ý tưởng <span>đã lưu.</span></h1><p>Lưu giữ những ý tưởng tốt nhất và chia sẻ kế hoạch với đồng đội.</p></div></div><div class="shortlist-toolbar"><div><strong>Chiến dịch đã lưu</strong><p id="shortlistDescription">Danh sách lưu trong trình duyệt này.</p></div><button class="btn btn-outline small" id="exportShortlistBtn" type="button">⇩ Xuất PDF</button><button class="btn btn-outline small" id="copyAllBtn" type="button"><svg class="icon"><use href="#i-copy"></use></svg> Copy tất cả</button><button aria-controls="smartPlanner" aria-expanded="false" class="btn btn-primary small" id="openPlannerBtn" type="button"> Lập kế hoạch 4 tuần</button></div>
+<section aria-label="Smart Campaign Planner" class="smart-planner hidden" id="smartPlanner">
+<div class="planner-heading"><div><span class="section-overline">SMART CAMPAIGN PLANNER · ĐIỂM WOW</span><h2>Kế hoạch Marketing tổng hợp 4 tuần</h2><p>Chọn những chiến dịch đã lưu để gộp nhiệm vụ theo tuần, theo dõi tiến độ và chia sẻ nhanh. Không cần gọi AI thêm.</p></div><button aria-label="Đóng Smart Planner" class="planner-close" id="closePlannerBtn" type="button">✕</button></div>
+<div class="planner-settings"><div class="planner-setting-head"><strong>Chiến dịch tham gia kế hoạch</strong><span class="planner-selected-count" id="plannerSelectionCount">0 chiến dịch</span></div>
+<div class="planner-filters"><label for="plannerBudgetFilter">Lọc theo ngân sách gốc
+                <select id="plannerBudgetFilter"><option value="all">Tất cả mức ngân sách</option><option value="Thấp">Thấp</option><option value="Trung bình">Trung bình</option><option value="Cao">Cao</option><option value="Chưa phân loại">Chưa phân loại (bản lưu cũ)</option></select>
+</label><label class="planner-select-all"><input checked="" id="plannerSelectAll" type="checkbox"/> Chọn tất cả kết quả đang lọc</label></div>
+<div class="planner-campaign-list" id="plannerCampaigns"></div><p class="planner-note">Bộ lọc chỉ giúp tìm chiến dịch để tích chọn. Kế hoạch bên dưới tổng hợp đúng các chiến dịch đã chọn.</p></div>
+<div class="planner-overview"><div><strong>Lịch triển khai</strong><span id="plannerProgressLabel">0/0 đầu việc hoàn thành</span></div><div class="planner-progress-rail"><div aria-label="Tiến độ kế hoạch" aria-valuemax="100" aria-valuemin="0" aria-valuenow="0" class="planner-progress-fill" id="plannerProgressBar" role="progressbar"></div></div></div>
+<div aria-label="Tuần của kế hoạch" class="planner-week-tabs" id="plannerWeekTabs" role="tablist"><button aria-selected="true" class="active" data-planner-week="0" role="tab" type="button">Tuần 01</button><button aria-selected="false" data-planner-week="1" role="tab" type="button">Tuần 02</button><button aria-selected="false" data-planner-week="2" role="tab" type="button">Tuần 03</button><button aria-selected="false" data-planner-week="3" role="tab" type="button">Tuần 04</button></div>
+<div aria-live="polite" class="planner-week-content" id="plannerWeekContent"></div>
+<p class="planner-budget-note" id="plannerBudgetNotice"></p>
+<div class="planner-share-area"><div><strong>Xuất và chia sẻ kế hoạch</strong><p>Copy nguyên văn bản hoặc Markdown; Zalo/Telegram sẽ mở chat để bạn chọn người nhận và tự gửi.</p></div><div class="planner-actions"><button class="btn btn-outline small" id="plannerCopyTextBtn" type="button">Copy Text</button><button class="btn btn-outline small" id="plannerCopyMarkdownBtn" type="button">Copy Markdown</button><button class="btn btn-primary small" id="plannerExportPdfBtn" type="button">⇩ Xuất PDF</button><button class="btn btn-outline small" id="plannerShareBtn" type="button">↗ Chia sẻ</button><button class="btn btn-outline small" id="plannerZaloBtn" type="button">Zalo</button><button class="btn btn-outline small" id="plannerTelegramBtn" type="button">Telegram</button></div></div>
+</section>
+<div class="ideas-grid" id="savedGrid"></div><div class="empty-state" id="shortlistEmpty"><div class="empty-icon"><svg class="icon"><use href="#i-bookmark"></use></svg></div><h3>Chưa có ý tưởng nào được lưu</h3><p>Khi tìm thấy một chiến dịch phù hợp, nhấn “Lưu shortlist” để quản lý tại đây.</p><button class="btn btn-primary" id="goCreateBtn" type="button"><svg class="icon"><use href="#i-target"></use></svg> Khám phá ý tưởng</button></div><footer class="page-footer">MarketGenius AI <span>•</span> Made with <span aria-label="tình yêu" class="footer-heart">♥</span> by <strong class="footer-author">Nhất Be</strong> <span>•</span> Marketing made smarter</footer></section>
+<section class="page-view" id="historyView">
+<div class="page-heading shortlist-heading"><div><div class="eyebrow"> CHIẾN DỊCH ĐÃ TẠO</div><h1>Lịch sử <span>chiến dịch.</span></h1><p>Xem lại các lần AI tạo 5 ý tưởng, mở tiếp và xuất báo cáo bất cứ lúc nào.</p></div></div>
+<div class="shortlist-toolbar"><div><strong>Lịch sử đã lưu</strong><p id="historyCount">0 lần tạo được lưu trên thiết bị này</p></div><span class="local-only-tag">Chỉ lưu trên trình duyệt</span></div>
+<div class="history-list" id="historyList"></div><div class="empty-state" id="historyEmpty"><h3>Chưa có lịch sử</h3><p>Thử tạo chiến dịch Demo hoặc AI thật, kết quả sẽ tự lưu tại đây.</p></div>
+<footer class="page-footer">MarketGenius AI <span>•</span> Made with <span aria-label="tình yêu" class="footer-heart">♥</span> by <strong class="footer-author">Nhất Be</strong> <span>•</span> Marketing made smarter</footer>
+</section>
+</main>
+</div>
+</div>
+<div aria-live="polite" class="toast-stack" id="toastStack"></div>
+<div class="compare-tray hidden" id="compareTray"><strong>So sánh: <span id="compareCount">0/3 chiến dịch</span></strong><button class="btn btn-primary small" id="compareNowBtn" type="button">So sánh ngay</button><button class="btn btn-outline small" id="clearCompareBtn" type="button">Xóa chọn</button></div>
+<div class="ai-alert hidden" id="aiAlert" role="alert"><div class="ai-alert-top"><h3 id="aiErrorTitle">Không kết nối được AI</h3><button aria-label="Đóng thông báo" id="closeAiAlert" type="button">✕</button></div><p id="aiErrorBody"></p><details><summary>Xem chi tiết kỹ thuật</summary><p id="aiErrorDetail"></p></details><div class="ai-alert-actions"><button type="button" class="btn btn-outline small hidden" id="useDemoAfterErrorBtn">Dùng Demo</button><button class="btn btn-outline small" id="retryAfterErrorBtn" type="button">Thử lại</button></div></div>
+<div class="generation-progress hidden" id="progressPanel" aria-label="Tiến độ tạo chiến dịch">
+  <div class="generation-progress-copy">
+    <div class="generation-progress-head">
+      <strong id="progressLabel" aria-live="polite" aria-atomic="true">Đang gửi brief</strong>
+      <span class="generation-progress-meter"><output id="progressPercent" aria-live="off">1%</output><span class="generation-progress-estimate">ước tính</span></span>
+    </div>
+    <div class="generation-progress-track" id="progressTrack" role="progressbar" aria-label="Tiến trình tạo chiến dịch ước tính" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+      <div class="generation-progress-fill" id="progressFill"></div>
+    </div>
+    <small id="progressDetail">Phần trăm dựa trên thời gian chờ, không phải tiến độ thật từ AI.</small>
+  </div>
+  <button id="cancelGenerationBtn" type="button">Hủy yêu cầu</button>
+</div>
+<dialog aria-label="Chỉnh sửa chiến dịch" class="studio-dialog" id="editDialog"><div class="studio-dialog-head"><div><span class="section-overline">CHỈNH SỬA KẾ HOẠCH</span><h2>Cá nhân hóa chiến dịch</h2></div><button aria-label="Đóng" onclick="this.closest('dialog').close()" type="button">✕</button></div><form id="editForm"></form></dialog>
+<dialog aria-label="So sánh chiến dịch" class="studio-dialog comparison-dialog" id="compareDialog"><div id="comparisonContent"></div></dialog>
+<div aria-hidden="true" id="printReport"></div>
+<dialog aria-label="Chi tiết chiến dịch" class="details-dialog" id="detailsDialog"><div id="detailsContent"></div></dialog>
+
+<script defer="" src="app.js?v=2417"></script>
+<script defer="" src="studio.js?v=2417"></script>
+<script defer="" src="studio-layout.js?v=2400"></script><script defer="" src="planner.js?v=2400"></script>
+<script defer src="smart-templates.js?v=2400"></script>
 </body>
 </html>

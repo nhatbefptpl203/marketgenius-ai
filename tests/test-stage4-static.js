@@ -1,0 +1,17 @@
+'use strict';
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const html=fs.readFileSync('index.html','utf8');
+const app=fs.readFileSync('app.js','utf8');
+const studio=fs.readFileSync('studio.js','utf8');
+assert.match(html,/Ví dụ minh họa — không phải dữ liệu đo lường/);
+assert.match(html,/id="builderEmpty"/);
+assert.doesNotMatch(html,/05<\/strong><small>Ý tưởng AI/);
+assert.doesNotMatch(html,/<\/input>/);
+assert.doesNotMatch(html,/script async="" defer="" src="https:\/\/challenges\.cloudflare\.com/);
+assert.match(app,/loadTurnstileScript/);
+assert.match(app,/theme:'light'/);
+assert.match(studio,/mg-card-menu/);
+assert.match(studio,/data-history-action="restore"/);
+for (const f of ['robots.txt','sitemap.xml','manifest.webmanifest','assets/marketgenius-symbol.webp']) assert.ok(fs.statSync(f).size>0);
+console.log('Stage 4 static tests pass');

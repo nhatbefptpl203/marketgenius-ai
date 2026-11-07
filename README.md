@@ -1,132 +1,57 @@
-# MarketGenius AI — Cuộc thi Vibe Coding 2026
+# MarketGenius AI v2.3.0 — cPanel Tenten
 
-## 1. Thông tin chung
+MarketGenius AI là công cụ tạo 5 ý tưởng marketing từ brief, kèm 4 tuần triển khai, Shortlist, Lịch sử, Smart Planner và xuất PDF qua trình duyệt. Có hai chế độ: **AI có sẵn (Gemini của chủ website)** và **Demo không gọi AI**. Dữ liệu lưu cục bộ trong trình duyệt; không phải dịch vụ lưu trữ tài khoản. Không yêu cầu khách nhập API key.
 
-| Hạng mục | Nội dung |
+## Yêu cầu
+- Hosting Tenten cPanel hỗ trợ Node.js phiên bản >=20 (ưu tiên Node.js 22).
+- Mã nguồn HTML/CSS/JavaScript thuần, Node.js built-in; **không có npm dependencies**.
+- Node app startup file `server.js`. Không đẩy biến bí mật vào mã nguồn/web công khai.
+
+## Cập nhật website hiện có
+1. Sao lưu toàn bộ thư mục ứng dụng trên Tenten và cấu hình Environment variables trước khi ghi đè.
+2. Giải nén **MG_GD4_Update_Tenten.zip** lên đúng thư mục app đang chạy, ghi đè file tương ứng. File ZIP update không chứa `.env`.
+3. Trong **Setup Node.js App**, xác nhận Application startup file: `server.js`; sau đó **Restart**.
+4. Vào website, Ctrl+F5 để xóa cache HTML cũ. Test trang chủ, Demo, Shortlist, Lịch sử và Smart Planner.
+5. Kiểm tra `/healthz`, `/robots.txt`, `/sitemap.xml`. Kiểm tra Turnstile và AI thật trên domain HTTPS. Không sử dụng ZIP Full ghi đè cấu hình môi trường khi website đang vận hành.
+
+## Cài đặt mới
+1. Giải nén `MG_GD4_Full_Source.zip` vào ứng dụng Node.js tại cPanel.
+2. Trỏ domain đúng vào ứng dụng, chọn `server.js` là startup file.
+3. Đặt biến môi trường trong cPanel; restart ứng dụng.
+4. Chạy kiểm tra cục bộ khi cần: `npm run check`, `npm test`, `node server.js`. Không cần chạy `npm install`.
+
+## Biến môi trường
+| Biến | Chức năng |
 |---|---|
-| Tên sản phẩm | MarketGenius AI — Trợ lý gợi ý ý tưởng và lập kế hoạch chiến dịch Marketing |
-| Phiên bản | 1.4.2 — Smart Campaign Planner và hai chế độ sử dụng AI |
-| Tên đội thi | Nhất Be |
-| Bảng thi | Bảng B – Kinh tế |
-| Đề bài bốc thăm | Đề số 09 — AI gợi ý ý tưởng chiến dịch Marketing |
-| Demo online | https://ph67401.netlify.app/ |
-| Mã nguồn GitHub | https://github.com/nhatbefptpl203/marketgenius-ai |
-| Video demo (≤ 02 phút) | https://youtu.be/lpPmRCChvp0 |
-| Source ZIP | https://drive.google.com/drive/folders/1Iq9A_Ag0ADJoX_9tCy1usCgqoNE3jdyO?usp=sharing |
-| Minh chứng dùng AI | https://drive.google.com/drive/folders/1a6qlcuqww7-1W7o8R0GgHDh8GZLZxIJ-?usp=sharing |
-| Bảng kiểm thử | Mục 11 của README này |
+| `GUEST_GEMINI_API_KEY` | **Bí mật** Gemini API do Nhất Be sở hữu. Không đưa lên frontend. |
+| `GUEST_GEMINI_MODEL` | Tên model Gemini được cấp quyền sử dụng. |
+| `TURNSTILE_SITE_KEY` | Public site key Cloudflare Turnstile, domain đúng. |
+| `TURNSTILE_SECRET_KEY` | **Bí mật** Turnstile cho xác minh server. |
+| `GUEST_IP_DAILY_LIMIT` | Số lượt dùng AI mỗi IP/ngày (mặc định 5). |
+| `GUEST_DAILY_LIMIT` | Tổng số lượt dùng AI toàn website/ngày (mặc định 60). |
+| `MEDIA_RESEARCH_ENABLED` | Bật/tắt nghiên cứu tham khảo media. |
+| `MEDIA_GEMINI_IMAGE_SEARCH` | Cấu hình image search của Gemini. |
+| `IMAGE_PROXY_SECRET` | **Bí mật** để ký URL proxy hình ảnh. |
 
-## 2. Tính năng chính
+**Cần đặt quota/budget/giới hạn chi tiêu từ phía Google trước khi bật Gemini thật.** Bộ đếm hạn mức theo ngày trong `server.js` nằm trong RAM; restart hoặc đa worker sẽ reset/không đồng bộ. Đây không phải giới hạn chi phí cứng.
 
-1. **Nhập thông tin chiến dịch:** Chọn ngành hàng, nhập tên sản phẩm/dịch vụ, mức ngân sách và mục tiêu chiến dịch; bổ sung khách hàng mục tiêu, ngân sách thực tế và điểm nổi bật của sản phẩm.
-2. **AI đề xuất 05 ý tưởng:** Tạo 05 chiến dịch Marketing, mỗi chiến dịch có tên, kênh triển khai và nội dung chính phù hợp với thông tin đầu vào.
-3. **Timeline triển khai 04 tuần:** Mỗi ý tưởng có kế hoạch thực hiện theo 04 tuần, hỗ trợ hiển thị theo bảng và đánh dấu tiến độ công việc.
-4. **Lưu ý tưởng vào Shortlist:** Người dùng lựa chọn và lưu các chiến dịch yêu thích.
-5. **Quản lý Shortlist:** Xem lại, xóa, sao chép nội dung và xuất kế hoạch sang PDF thông qua chức năng in của trình duyệt.
+## API và tương thích
+- `GET /api/ai`: trả cấu hình guest và trạng thái khả dụng.
+- `POST /api/ai` chỉ nhận các action guest được backend cho phép, từ chối action của AI cá nhân cũ.
+- `GET /api/image`: proxy có chữ ký cho ảnh nghiên cứu; hoạt động trên `server.js`.
+- Dữ liệu localStorage và JSON ideas cũ được giữ nguyên để mở lịch sử từ những bản trước.
+- `netlify.toml` là di sản, chưa khai báo `/api/image`; **triển khai chính thức qua Node.js Tenten**, không giả định Netlify tương thích đầy đủ.
+- Turnstile chỉ tải khi truy cập trang tạo chiến dịch; riêng gợi ý mẫu được tải khi UI mẫu được mở.
 
-Các chức năng mở rộng gồm: lịch sử tạo chiến dịch, chỉnh sửa nội dung và KPI, phân bổ ngân sách, so sánh 02–03 chiến dịch, xuất báo cáo PDF, hướng dẫn lấy API Key và xác minh model AI trước khi lựa chọn. **Smart Campaign Planner** cho phép chọn các chiến dịch trong Shortlist, tổng hợp công việc theo 04 tuần, theo dõi tiến độ, lọc theo mức ngân sách của brief, sao chép Text/Markdown và mở Zalo/Telegram để chia sẻ. Giao diện so sánh trên điện thoại được tối ưu thành các thẻ dọc. Người dùng chọn **AI có sẵn** hoặc **AI cá nhân**; AI có sẵn yêu cầu xác minh chống bot và không cung cấp khóa của chủ website cho người truy cập.
+## Kiểm thử / xử lý lỗi
+- `npm run check` kiểm tra cú pháp Node/JS; `npm test` kiểm tra dữ liệu guest và tương thích backend.
+- Lỗi tải Turnstile: kiểm tra HTTPS, domain đăng ký site key, CSP, ad blocker và console.
+- `AI chưa khả dụng`: kiểm tra `GUEST_GEMINI_API_KEY`, model, quota, `TURNSTILE_SECRET_KEY`, log Node.
+- `404` cho đường dẫn ngoài các route chính là chủ ý.
+- Font Google cần kết nối Internet; khi không tải được sẽ dùng system-ui.
 
-## 3. Công nghệ sử dụng
-
-| Lớp | Công nghệ |
-|---|---|
-| Giao diện | HTML5, CSS3, JavaScript thuần; thiết kế responsive |
-| Thư viện, tài nguyên giao diện | Google Fonts; biểu tượng SVG nhúng trực tiếp |
-| Lưu trữ | localStorage trên trình duyệt |
-| Tích hợp AI | Google Gemini API và OpenAI API |
-| Backend | Netlify Functions (JavaScript) |
-| Triển khai | GitHub và Netlify |
-| Xuất báo cáo | HTML/CSS dành cho in và chức năng Save as PDF của trình duyệt |
-
-## 4. Tích hợp AI
-
-- **Chế độ hỗ trợ:** AI có sẵn của website (Gemini do chủ website cấu hình); AI cá nhân (Gemini hoặc OpenAI bằng API Key của người dùng); và DEMO sử dụng dữ liệu mô phỏng được gắn nhãn rõ ràng.
-- **Chế độ sử dụng trong video nộp:** để Nhất điền
-- **Model sử dụng trong video nộp:** để Nhất điền
-- **Mục đích:** Phân tích ngành hàng, sản phẩm, khách hàng mục tiêu, ngân sách và mục tiêu Marketing; đề xuất 05 chiến dịch cùng nội dung, kênh triển khai, KPI và timeline 04 tuần.
-- **Cách kết nối:** Người dùng nhập API Key của nhà cung cấp, hệ thống lấy danh sách model ứng viên và hỗ trợ xác minh model bằng yêu cầu thử trước khi sử dụng. Website gửi yêu cầu qua Netlify Functions để kết nối API của nhà cung cấp AI.
-- **Bảo mật API Key:** API Key do người dùng nhập tại giao diện, không được ghi cố định vào mã nguồn hay lưu trong localStorage. Yêu cầu API được chuyển tiếp qua Netlify Functions.
-- **Chế độ DEMO:** Nội dung mô phỏng được phân biệt với kết quả từ API thật.
-
-## 5. Cài đặt và chạy local
-
-**Yêu cầu:** Trình duyệt web hiện đại; Netlify CLI nếu sử dụng API thật tại máy cá nhân.
-
-**Chạy chế độ DEMO:** Giải nén mã nguồn và mở `index.html` trên trình duyệt hoặc dùng máy chủ tĩnh.
-
-**Chạy với Netlify Functions:**
-
-```bash
-npm install -g netlify-cli
-netlify dev
-```
-
-Sau khi chạy, truy cập địa chỉ local do Netlify CLI cung cấp. Ứng dụng online được triển khai tại https://ph67401.netlify.app/.
-
-## 6. Cấu trúc thư mục
-
-```text
-marketgenius-ai/
-├── index.html
-├── styles.css
-├── app.js
-├── studio.js
-├── planner.js
-├── netlify.toml
-├── netlify/
-│   └── functions/
-│       └── ai.js
-└── README.md
-```
-
-## 7. Truy cập và phân quyền
-
-- Website không yêu cầu tạo tài khoản hoặc đăng nhập.
-- Người dùng có thể tạo ý tưởng bằng chế độ DEMO hoặc kết nối API Key cá nhân để sử dụng AI thật.
-- Người dùng quản lý Shortlist và lịch sử tạo chiến dịch trên trình duyệt của mình.
-- Hệ thống chưa có tài khoản quản trị hoặc chức năng phân quyền nhiều người dùng.
-
-## 8. Giới hạn hiện tại
-
-- Shortlist và lịch sử được lưu cục bộ bằng localStorage, không tự đồng bộ giữa các thiết bị hoặc trình duyệt. Lựa chọn chiến dịch trong Smart Planner được thiết lập trong phiên làm việc hiện tại.
-- Chưa có hệ thống tài khoản, cơ sở dữ liệu máy chủ và tính năng cộng tác nhóm.
-- Tính năng xuất PDF thực hiện thông qua hộp thoại in của trình duyệt; người dùng chọn Save as PDF. Chia sẻ Zalo/Telegram yêu cầu tự chọn người nhận và dán nội dung đã sao chép, không tự động gửi tin nhắn.
-- Chế độ DEMO sử dụng dữ liệu mô phỏng, không phải kết quả AI thật.
-- API thật phụ thuộc quyền truy cập model, hạn mức và tình trạng hoạt động của Google Gemini/OpenAI. Việc xác minh model có thể sử dụng hạn mức hoặc phát sinh chi phí API.
-
-## 9. Nguồn tham khảo
-
-- Đề số 09 — AI gợi ý ý tưởng chiến dịch Marketing, Cuộc thi Vibe Coding 2026.
-- Google Gemini API: https://ai.google.dev/gemini-api/docs
-- OpenAI API: https://platform.openai.com/docs
-- Netlify Functions: https://docs.netlify.com/build/functions/overview/
-- Google Fonts: https://fonts.google.com/
-
-## 10. Minh chứng dùng AI để xây dựng sản phẩm
-
-**Mục tiêu:** Xây dựng công cụ hỗ trợ lên ý tưởng và lập kế hoạch chiến dịch Marketing đáp ứng 05 yêu cầu của Đề số 09.
-
-**Quá trình thực hiện:** Sử dụng AI hỗ trợ xây dựng giao diện, viết mã nguồn HTML/CSS/JavaScript và Netlify Functions; triển khai lên GitHub, Netlify; thử nghiệm chức năng kết nối API và tạo chiến dịch.
-
-**Vấn đề phát hiện khi thử nghiệm:** Lỗi giới hạn API (429), lỗi quá tải AI (503), tình trạng danh sách model hiển thị cả model không sử dụng được, cùng nhu cầu mở rộng chức năng quản lý chiến dịch.
-
-**Cải tiến:** Bổ sung xử lý lỗi API, xác minh model Gemini/OpenAI, quản lý lịch sử, chỉnh sửa chiến dịch, phân bổ ngân sách, so sánh ý tưởng và xuất PDF.
-
-**Ảnh hoặc liên kết minh chứng:** https://drive.google.com/drive/folders/1a6qlcuqww7-1W7o8R0GgHDh8GZLZxIJ-?usp=sharing
-
-## 11. Bảng kiểm thử
-
-https://docs.google.com/spreadsheets/d/1iCeeIeK1ZO3ySjoWLrN2zCm3Hb5caDt-fxjwuMzIvtU/edit?usp=sharing
-
-## 12. Hồ sơ bàn giao
-
-| Thành phần | Thông tin |
-|---|---|
-| Mã nguồn sản phẩm | MarketGenius AI phiên bản 1.4.1 |
-| Source ZIP nộp bài | để Nhất điền |
-| README | `README.md` |
-| Video demo (≤ 02 phút) | để Nhất điền |
-| Minh chứng sử dụng AI | để Nhất điền |
-| Bảng kiểm thử | Mục 11 của README này |
-| Tài khoản demo | Không yêu cầu đăng nhập |
-| Dữ liệu DEMO | Có sẵn trong website |
+## TODO(Nhất)
+- Xác nhận tên chính xác model Gemini dùng trên website và ghi trong video demo.
+- Xác nhận ngân sách/giới hạn chi tiêu phía Google.
+- Test Turnstile/AI thật trên domain `smartgear.website` và kiểm tra kết quả 5 ý tưởng.
+- Nếu triển khai lên domain/subpath khác, sửa canonical/OG/sitemap theo URL đó.
